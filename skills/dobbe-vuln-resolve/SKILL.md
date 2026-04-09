@@ -1,4 +1,4 @@
-# dobbe — Vulnerability Resolution
+# dobbe -- Vulnerability Resolution
 
 Resolve vulnerabilities in a GitHub repository with an automated
 scan → fix → verify → report pipeline that retries up to 3 times.
@@ -34,9 +34,9 @@ insecure dependencies, or run the security fix pipeline.
 
 ## Rules
 
-- **NEVER skip steps** — always call back to get the next instruction.
+- **NEVER skip steps** -- always call back to get the next instruction.
 - When fixing dependencies, prefer PATCH or MINOR version bumps.
 - Always run lockfile regeneration after modifying dependency files.
-- In the verify step, report ALL test output — the pipeline uses it for retry feedback.
+- In the verify step, report ALL test output -- the pipeline uses it for retry feedback.
 - If the GitHub MCP is available, prefer it over `gh` CLI commands.
 - If you can't access the repo, report the error to `pipeline_step`.

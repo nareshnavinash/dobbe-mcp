@@ -49,7 +49,7 @@ export function createReviewPostPipeline(params: {
       },
       post: {
         instruction: dryRun
-          ? "Dry run mode — do NOT post to GitHub. Return a summary of what would be posted."
+          ? "Dry run mode -- do NOT post to GitHub. Return a summary of what would be posted."
           : [
               "Post review comments to each PR on GitHub.",
               "For each PR review:",

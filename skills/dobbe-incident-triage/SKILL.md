@@ -1,4 +1,4 @@
-# dobbe — Incident Triage
+# dobbe -- Incident Triage
 
 Triage Sentry incidents with AI analysis. Supports batch triage
 of all unresolved issues or deep analysis of a single issue.
@@ -31,8 +31,8 @@ investigate a specific error, or resolve a Sentry issue.
 
 ## Rules
 
-- **NEVER skip steps** — always call back for the next instruction.
-- Sentry MCP is required — if not available, report the error.
+- **NEVER skip steps** -- always call back for the next instruction.
+- Sentry MCP is required -- if not available, report the error.
 - For single issue analysis: always read the source code mentioned in stack traces.
 - Provide specific file paths and line numbers in your analysis.
 - When resolving: fix root causes, not symptoms. Add tests.

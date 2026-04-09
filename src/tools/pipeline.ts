@@ -40,7 +40,7 @@ export class PipelineService {
       this.machine.registerPipeline(definition);
     } catch (e) {
       if (e instanceof PipelineError && e.code === "DUPLICATE_PIPELINE") {
-        // Already registered — fine
+        // Already registered -- fine
       } else {
         throw e;
       }
@@ -98,7 +98,7 @@ export class PipelineService {
 
         const canRetry = this.machine.retry(session, feedback, retryTarget);
         if (!canRetry) {
-          // Max iterations reached — transition to failure terminal
+          // Max iterations reached -- transition to failure terminal
           const failTerminal = definition.terminalStates.find(s => s === "failed");
           session.done = true;
           session.updatedAt = new Date().toISOString();
@@ -316,7 +316,7 @@ export class PipelineService {
       try {
         this.machine.getPipeline(session.pipeline);
       } catch {
-        // Pipeline definition lost (server restart) — try to recover
+        // Pipeline definition lost (server restart) -- try to recover
         if (session.command && session.params) {
           try {
             const definition = createPipeline(session.command, session.params);

@@ -123,7 +123,7 @@ describe("vuln-scan pipeline", () => {
                 title: "Prototype Pollution",
               },
             ],
-            risk_assessment: "In use — imported in src/utils.js",
+            risk_assessment: "In use -- imported in src/utils.js",
             action: "fix",
             reason: "Critical severity, code path is active",
           },

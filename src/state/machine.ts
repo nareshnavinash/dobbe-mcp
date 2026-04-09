@@ -22,7 +22,7 @@ export interface PipelineDefinition {
   name: string;
   /** The initial state when the pipeline starts. */
   initialState: string;
-  /** Terminal states — pipeline is done when it reaches one of these. */
+  /** Terminal states -- pipeline is done when it reaches one of these. */
   terminalStates: string[];
   /** Maximum iterations for retry loops (0 = no limit). */
   maxIterations: number;
@@ -304,7 +304,7 @@ export class StateMachine {
 
 /**
  * Convert a Zod schema to a simple JSON-like hint object for Claude.
- * This doesn't need to be a full JSON Schema — just enough for Claude
+ * This doesn't need to be a full JSON Schema -- just enough for Claude
  * to understand the expected result shape.
  */
 export function schemaToHint(schema: z.ZodType): Record<string, unknown> {

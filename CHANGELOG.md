@@ -11,7 +11,7 @@ Format based on [Keep a Changelog](https://keepachangelog.com/).
 - Generic finite state machine with Zod validation per step
 - Retry loops with feedback injection (vuln-resolve, test-gen, migration-plan)
 - Pipeline recovery after MCP server restart (session + params persisted to disk)
-- `PipelineService` class — no global mutable state, testable in isolation
+- `PipelineService` class -- no global mutable state, testable in isolation
 - Async file I/O throughout (no sync operations blocking the event loop)
 - Atomic file writes via `atomicWriteFile()` to prevent corruption on crash
 - File permissions restricted to owner-only (0o600 files, 0o700 directories)

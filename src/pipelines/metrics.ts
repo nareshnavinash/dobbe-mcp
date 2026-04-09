@@ -7,7 +7,7 @@ import { z } from "zod";
  * Metrics Velocity pipeline: collect → done
  *
  * Both are single-pass data collection + computation.
- * No AI needed — Claude runs gh commands and computes metrics.
+ * No AI needed -- Claude runs gh commands and computes metrics.
  */
 
 export function createMetricsDoraPipeline(params: {

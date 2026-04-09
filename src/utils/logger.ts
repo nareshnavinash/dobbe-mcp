@@ -3,8 +3,8 @@
  * MCP uses stdio for transport, so all logs go to stderr.
  *
  * Environment variables:
- *   DOBBE_LOG_LEVEL  — debug | info | warn | error (default: info)
- *   DOBBE_LOG_FORMAT — json | pretty (default: json)
+ *   DOBBE_LOG_LEVEL  -- debug | info | warn | error (default: info)
+ *   DOBBE_LOG_FORMAT -- json | pretty (default: json)
  */
 
 type LogLevel = "debug" | "info" | "warn" | "error";

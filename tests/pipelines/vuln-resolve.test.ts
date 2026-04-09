@@ -162,7 +162,7 @@ describe("vuln-resolve pipeline", () => {
       machine.advance(session, { committed: true });
       expect(session.currentState).toBe("verify");
 
-      // Verify fails — use retry
+      // Verify fails -- use retry
       const canRetry = machine.retry(session, "Tests failed: TypeError", "fix");
       expect(canRetry).toBe(true);
       expect(session.currentState).toBe("fix");

@@ -24,12 +24,12 @@ describe("Installer", () => {
     fs.mkdirSync(path.join(skillsSource, "dobbe-vuln-scan"), { recursive: true });
     fs.writeFileSync(
       path.join(skillsSource, "dobbe-vuln-scan", "SKILL.md"),
-      "# dobbe — Vulnerability Scan\nTest skill.",
+      "# dobbe -- Vulnerability Scan\nTest skill.",
     );
     fs.mkdirSync(path.join(skillsSource, "dobbe-vuln-resolve"), { recursive: true });
     fs.writeFileSync(
       path.join(skillsSource, "dobbe-vuln-resolve", "SKILL.md"),
-      "# dobbe — Vulnerability Resolution\nTest skill.",
+      "# dobbe -- Vulnerability Resolution\nTest skill.",
     );
     // Non-dobbe directory should be ignored
     fs.mkdirSync(path.join(skillsSource, "other-skill"), { recursive: true });

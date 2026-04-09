@@ -1,4 +1,4 @@
-# dobbe — Doctor
+# dobbe -- Doctor
 
 Environment health check for dobbe. Verifies that all required
 tools and MCP servers are available and configured correctly.
@@ -12,9 +12,9 @@ or verify the environment is set up correctly.
 
 Run these checks and report the results:
 
-1. **dobbe MCP server:** Call `mcp__dobbe__pipeline_list` — if it responds, the server is running.
+1. **dobbe MCP server:** Call `mcp__dobbe__pipeline_list` -- if it responds, the server is running.
 
-2. **Configuration:** Call `mcp__dobbe__config_read` — check if config exists and has required fields.
+2. **Configuration:** Call `mcp__dobbe__config_read` -- check if config exists and has required fields.
 
 3. **GitHub CLI:**
    ```
@@ -51,4 +51,4 @@ Present results as a checklist:
 
 - Report ALL checks even if some fail.
 - For failed checks, suggest how to fix them.
-- Don't attempt to fix anything — just report.
+- Don't attempt to fix anything -- just report.

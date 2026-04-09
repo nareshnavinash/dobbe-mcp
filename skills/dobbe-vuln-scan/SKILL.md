@@ -1,4 +1,4 @@
-# dobbe — Vulnerability Scan
+# dobbe -- Vulnerability Scan
 
 Scan a GitHub repository for Dependabot vulnerability alerts and triage them
 with AI analysis of actual code path usage.
@@ -28,7 +28,7 @@ Dependabot alerts, or assess the security posture of a repository.
 
 ## Rules
 
-- **NEVER skip steps** — always call back to get the next instruction.
+- **NEVER skip steps** -- always call back to get the next instruction.
 - **Include ALL details** when submitting results: alert numbers, versions,
   severity, your risk assessment, and recommended action for each.
 - If the GitHub MCP is available, prefer it over `gh` CLI commands.

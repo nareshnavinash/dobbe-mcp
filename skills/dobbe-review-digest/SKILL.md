@@ -1,4 +1,4 @@
-# dobbe — PR Review Digest
+# dobbe -- PR Review Digest
 
 Generate an AI-powered code review digest for open pull requests
 in a GitHub repository. Supports single PR or batch review.
@@ -29,9 +29,9 @@ check open pull requests, or review a specific PR.
 
 ## Rules
 
-- **NEVER skip steps** — always call back for the next instruction.
+- **NEVER skip steps** -- always call back for the next instruction.
 - Fetch and read the full PR diff before reviewing.
-- Read related source files for context — don't review in isolation.
+- Read related source files for context -- don't review in isolation.
 - Prioritize security and breaking changes over style issues.
 - Be specific: include file paths and line numbers in concerns.
 - If the GitHub MCP is available, prefer it over `gh` CLI commands.

@@ -1,4 +1,4 @@
-# dobbe — Setup
+# dobbe -- Setup
 
 Interactive configuration wizard for dobbe. Auto-detects settings
 from the current environment and walks you through manual configuration.

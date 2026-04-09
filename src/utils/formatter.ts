@@ -1,5 +1,5 @@
 /**
- * Report formatter — converts pipeline results to table, JSON, or Markdown.
+ * Report formatter -- converts pipeline results to table, JSON, or Markdown.
  */
 
 export type OutputFormat = "table" | "json" | "markdown";

@@ -1,4 +1,4 @@
-# dobbe — Claude Code Context
+# dobbe -- Claude Code Context
 
 ## What is dobbe?
 
@@ -49,9 +49,9 @@ npm run clean        # Remove dist/ and coverage/
 
 ## Environment variables
 
-- `DOBBE_HOME` — Override ~/.dobbe directory
-- `DOBBE_LOG_LEVEL` — debug | info | warn | error (default: info)
-- `DOBBE_LOG_FORMAT` — json | pretty (default: json)
+- `DOBBE_HOME` -- Override ~/.dobbe directory
+- `DOBBE_LOG_LEVEL` -- debug | info | warn | error (default: info)
+- `DOBBE_LOG_FORMAT` -- json | pretty (default: json)
 
 ## Testing
 

@@ -55,7 +55,7 @@ export class ConfigManager {
         }
         this.cache = null;
       } catch {
-        // File may not exist — use cached defaults
+        // File may not exist -- use cached defaults
         return cached;
       }
     }

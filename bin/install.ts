@@ -4,9 +4,9 @@
  * dobbe installer CLI.
  *
  * Usage:
- *   npx dobbe install     — Install skills + configure MCP server
- *   npx dobbe uninstall   — Remove skills + MCP config
- *   npx dobbe update      — Re-install skills (update to latest)
+ *   npx dobbe install     -- Install skills + configure MCP server
+ *   npx dobbe uninstall   -- Remove skills + MCP config
+ *   npx dobbe update      -- Re-install skills (update to latest)
  *
  * This is the bin entry point registered in package.json.
  */
@@ -39,7 +39,7 @@ async function main(): Promise<void> {
         const transport = new StdioServerTransport();
         await server.connect(transport);
       } else {
-        console.log("dobbe — AI-powered MCP server for Claude Code\n");
+        console.log("dobbe -- AI-powered MCP server for Claude Code\n");
         console.log("Commands:");
         console.log("  npx dobbe install     Install skills + configure MCP");
         console.log("  npx dobbe uninstall   Remove skills + MCP config");

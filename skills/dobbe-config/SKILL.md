@@ -1,4 +1,4 @@
-# dobbe — Config
+# dobbe -- Config
 
 View and manage dobbe configuration stored in ~/.dobbe/config.toml.
 
@@ -19,16 +19,16 @@ set the default org, change output format, or manage configuration.
    - value: the new value
 
 **Common config keys:**
-- `general.default_org` — Default GitHub organization
-- `general.default_format` — Output format: table, json, markdown
-- `general.default_severity` — Severity filter: critical,high,medium,low
-- `notifications.slack_channel` — Slack channel for notifications
-- `timeouts.scan` — Scan timeout in seconds (default: 300)
-- `timeouts.resolve` — Resolve timeout in seconds (default: 600)
-- `timeouts.review` — Review timeout in seconds (default: 300)
+- `general.default_org` -- Default GitHub organization
+- `general.default_format` -- Output format: table, json, markdown
+- `general.default_severity` -- Severity filter: critical,high,medium,low
+- `notifications.slack_channel` -- Slack channel for notifications
+- `timeouts.scan` -- Scan timeout in seconds (default: 300)
+- `timeouts.resolve` -- Resolve timeout in seconds (default: 600)
+- `timeouts.review` -- Review timeout in seconds (default: 300)
 
 ## Rules
 
 - Always show the current value before changing it.
 - Validate format choices: only table, json, or markdown.
-- Don't delete config keys — only set new values.
+- Don't delete config keys -- only set new values.

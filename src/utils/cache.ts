@@ -53,7 +53,7 @@ export class CacheManager {
       // Check TTL
       const age = Date.now() - new Date(entry.createdAt).getTime();
       if (age > entry.ttlMs) {
-        // Expired — delete and return null
+        // Expired -- delete and return null
         await fs.unlink(filePath);
         return null;
       }
@@ -111,7 +111,7 @@ export class CacheManager {
           removed++;
         }
       } catch (e) {
-        // Corrupt file — remove it
+        // Corrupt file -- remove it
         logger.warn("Removing corrupt cache file", { file, error: (e as Error).message });
         await fs.unlink(filePath).catch(() => {});
         removed++;

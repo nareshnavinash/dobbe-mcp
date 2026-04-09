@@ -44,7 +44,7 @@ describe("pipeline recovery (integration)", () => {
       },
     });
 
-    // Simulate server restart — create a fresh PipelineService
+    // Simulate server restart -- create a fresh PipelineService
     const svc2 = new PipelineService(storage);
 
     // The new service should be able to recover the session
