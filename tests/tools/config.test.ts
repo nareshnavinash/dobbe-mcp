@@ -22,16 +22,16 @@ describe("Config tool handlers", () => {
   // The actual config logic is fully tested in utils/config.test.ts.
   // This tests the factory helper used for testing.
 
-  it("creates a config manager with custom path", () => {
+  it("creates a config manager with custom path", async () => {
     const manager = _createConfigManager(configPath);
     expect(manager).toBeDefined();
-    expect(manager.exists()).toBe(false);
+    expect(await manager.exists()).toBe(false);
   });
 
-  it("reads and writes through custom manager", () => {
+  it("reads and writes through custom manager", async () => {
     const manager = _createConfigManager(configPath);
-    manager.set("general.default_org", "test-org");
-    expect(manager.get("general.default_org")).toBe("test-org");
-    expect(manager.exists()).toBe(true);
+    await manager.set("general.default_org", "test-org");
+    expect(await manager.get("general.default_org")).toBe("test-org");
+    expect(await manager.exists()).toBe(true);
   });
 });

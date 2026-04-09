@@ -1,15 +1,13 @@
+import { createRequire } from "node:module";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
-import {
-  pipelineStart,
-  pipelineStep,
-  pipelineComplete,
-  pipelineStatus,
-  pipelineList,
-} from "./tools/pipeline.js";
+import { PipelineService } from "./tools/pipeline.js";
 import { configRead, configWrite } from "./tools/config.js";
 import { cacheGet, cacheSet } from "./tools/cache.js";
 import { sessionLoad, sessionSave } from "./tools/session.js";
+
+const require = createRequire(import.meta.url);
+const { version } = require("../package.json") as { version: string };
 
 /**
  * Create and configure the dobbe MCP server with all tool registrations.
@@ -17,8 +15,10 @@ import { sessionLoad, sessionSave } from "./tools/session.js";
 export function createServer(): McpServer {
   const server = new McpServer({
     name: "dobbe",
-    version: "0.1.0",
+    version,
   });
+
+  const pipeline = new PipelineService();
 
   // ─── Pipeline Tools ───
 
@@ -39,7 +39,7 @@ export function createServer(): McpServer {
     },
     async (args) => {
       try {
-        const result = pipelineStart({
+        const result = await pipeline.pipelineStart({
           command: args.command,
           params: args.params as Record<string, unknown>,
         });
@@ -66,7 +66,7 @@ export function createServer(): McpServer {
     },
     async (args) => {
       try {
-        const result = pipelineStep({
+        const result = await pipeline.pipelineStep({
           session_id: args.session_id,
           result: args.result,
           outcome: args.outcome,
@@ -93,7 +93,7 @@ export function createServer(): McpServer {
     },
     async (args) => {
       try {
-        const result = pipelineComplete({
+        const result = await pipeline.pipelineComplete({
           session_id: args.session_id,
           result: args.result as Record<string, unknown> | undefined,
         });
@@ -115,7 +115,7 @@ export function createServer(): McpServer {
     },
     async (args) => {
       try {
-        const result = pipelineStatus({ session_id: args.session_id });
+        const result = await pipeline.pipelineStatus({ session_id: args.session_id });
         return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
       } catch (e) {
         return {
@@ -131,8 +131,37 @@ export function createServer(): McpServer {
     "List all available pipeline commands.",
     {},
     async () => {
-      const result = pipelineList();
+      const result = pipeline.pipelineList();
       return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
+    },
+  );
+
+  server.tool(
+    "pipeline_list_sessions",
+    "List all pipeline sessions (active and completed).",
+    {},
+    async () => {
+      const result = await pipeline.pipelineListSessions();
+      return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
+    },
+  );
+
+  server.tool(
+    "pipeline_abort",
+    "Abort an in-progress pipeline session.",
+    {
+      session_id: z.string().describe("Session ID to abort"),
+    },
+    async (args) => {
+      try {
+        const result = await pipeline.pipelineAbort({ session_id: args.session_id });
+        return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
+      } catch (e) {
+        return {
+          content: [{ type: "text", text: `Error: ${(e as Error).message}` }],
+          isError: true,
+        };
+      }
     },
   );
 
@@ -143,7 +172,7 @@ export function createServer(): McpServer {
     "Read the dobbe configuration from ~/.dobbe/config.toml.",
     {},
     async () => {
-      const result = configRead();
+      const result = await configRead();
       return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
     },
   );
@@ -159,7 +188,7 @@ export function createServer(): McpServer {
     },
     async (args) => {
       try {
-        const result = configWrite({ key: args.key, value: args.value });
+        const result = await configWrite({ key: args.key, value: args.value });
         return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
       } catch (e) {
         return {
@@ -179,7 +208,7 @@ export function createServer(): McpServer {
       key: z.string().describe("Cache key (e.g., 'vuln-scan:owner/repo:critical,high')"),
     },
     async (args) => {
-      const result = cacheGet({ key: args.key });
+      const result = await cacheGet({ key: args.key });
       return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
     },
   );
@@ -193,7 +222,7 @@ export function createServer(): McpServer {
       ttl_hours: z.number().optional().describe("TTL in hours (default: 4)"),
     },
     async (args) => {
-      const result = cacheSet({
+      const result = await cacheSet({
         key: args.key,
         data: args.data,
         ttl_hours: args.ttl_hours,
@@ -213,7 +242,7 @@ export function createServer(): McpServer {
         .describe("Context scope (e.g., 'owner/repo:vuln-scan')"),
     },
     async (args) => {
-      const result = sessionLoad({ scope: args.scope });
+      const result = await sessionLoad({ scope: args.scope });
       return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
     },
   );
@@ -226,7 +255,7 @@ export function createServer(): McpServer {
       context: z.unknown().describe("Context data to persist"),
     },
     async (args) => {
-      const result = sessionSave({ scope: args.scope, context: args.context });
+      const result = await sessionSave({ scope: args.scope, context: args.context });
       return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
     },
   );

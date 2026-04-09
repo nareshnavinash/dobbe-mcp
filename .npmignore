@@ -1,0 +1,19 @@
+# Source and config
+src/
+tests/
+coverage/
+.github/
+docs/
+assets/
+
+# Config files
+vitest.config.ts
+eslint.config.js
+tsconfig.json
+CLAUDE.md
+CONTRIBUTING.md
+CODE_OF_CONDUCT.md
+
+# Misc
+.DS_Store
+*.test.ts

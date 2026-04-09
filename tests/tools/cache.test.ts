@@ -20,14 +20,14 @@ describe("Cache tool handlers", () => {
     expect(manager).toBeDefined();
   });
 
-  it("stores and retrieves through custom manager", () => {
+  it("stores and retrieves through custom manager", async () => {
     const manager = _createCacheManager(tmpDir);
-    manager.set("test-key", { data: 42 });
-    expect(manager.get("test-key")).toEqual({ data: 42 });
+    await manager.set("test-key", { data: 42 });
+    expect(await manager.get("test-key")).toEqual({ data: 42 });
   });
 
-  it("returns null for missing key", () => {
+  it("returns null for missing key", async () => {
     const manager = _createCacheManager(tmpDir);
-    expect(manager.get("missing")).toBeNull();
+    expect(await manager.get("missing")).toBeNull();
   });
 });

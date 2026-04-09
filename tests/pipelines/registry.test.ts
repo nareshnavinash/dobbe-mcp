@@ -90,15 +90,26 @@ describe("Pipeline Registry", () => {
     });
 
     // Default params
-    it("creates all pipelines with empty params", () => {
+    it("creates pipelines with minimal valid params", () => {
       for (const cmd of ["vuln-scan", "vuln-resolve", "review-digest", "review-post",
         "audit-report", "deps-analyze", "test-gen", "metrics-dora", "metrics-velocity", "scan-secrets"]) {
-        expect(() => createPipeline(cmd, {})).not.toThrow();
+        expect(() => createPipeline(cmd, { repo: "acme/web" })).not.toThrow();
       }
-      // These need specific params
+      // These have different required params
       expect(() => createPipeline("incident-triage", {})).not.toThrow();
-      expect(() => createPipeline("changelog-gen", {})).not.toThrow();
-      expect(() => createPipeline("migration-plan", {})).not.toThrow();
+      expect(() => createPipeline("changelog-gen", { repo: "acme/web" })).not.toThrow();
+      expect(() => createPipeline("migration-plan", { repo: "acme/web" })).not.toThrow();
+    });
+
+    it("rejects pipelines with missing required params", () => {
+      expect(() => createPipeline("vuln-scan", {})).toThrow(/repo.*required/i);
+      expect(() => createPipeline("vuln-scan", { repo: "" })).toThrow(/repo/i);
+    });
+
+    it("rejects invalid maxIterations", () => {
+      expect(() => createPipeline("vuln-resolve", { repo: "acme/web", maxIterations: "invalid" })).toThrow(/maxIterations/);
+      expect(() => createPipeline("vuln-resolve", { repo: "acme/web", maxIterations: -1 })).toThrow(/maxIterations/);
+      expect(() => createPipeline("vuln-resolve", { repo: "acme/web", maxIterations: 1.5 })).toThrow(/maxIterations/);
     });
 
     it("throws for unknown command", () => {

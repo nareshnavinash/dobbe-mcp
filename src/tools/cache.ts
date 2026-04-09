@@ -6,18 +6,18 @@ import { CacheManager } from "../utils/cache.js";
 
 const cacheManager = new CacheManager();
 
-export function cacheGet(args: { key: string }): { hit: boolean; data: unknown } {
-  const data = cacheManager.get(args.key);
+export async function cacheGet(args: { key: string }): Promise<{ hit: boolean; data: unknown }> {
+  const data = await cacheManager.get(args.key);
   return { hit: data !== null, data };
 }
 
-export function cacheSet(args: {
+export async function cacheSet(args: {
   key: string;
   data: unknown;
   ttl_hours?: number;
-}): { ok: boolean; key: string } {
+}): Promise<{ ok: boolean; key: string }> {
   const ttlMs = (args.ttl_hours ?? 4) * 60 * 60 * 1000;
-  cacheManager.set(args.key, args.data, ttlMs);
+  await cacheManager.set(args.key, args.data, ttlMs);
   return { ok: true, key: args.key };
 }
 

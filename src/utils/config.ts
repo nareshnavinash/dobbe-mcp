@@ -1,6 +1,8 @@
-import * as fs from "node:fs";
+import * as fs from "node:fs/promises";
 import * as path from "node:path";
 import TOML from "@iarna/toml";
+import { CONFIG_PATH } from "./paths.js";
+import { atomicWriteFile, ensureDir } from "./fs.js";
 
 /**
  * Read and write ~/.dobbe/config.toml.
@@ -29,15 +31,10 @@ export interface DobbeConfig {
   repos?: Record<string, { local_path?: string }>;
 }
 
-const DOBBE_DIR = path.join(
-  process.env.HOME ?? process.env.USERPROFILE ?? ".",
-  ".dobbe",
-);
-const CONFIG_PATH = path.join(DOBBE_DIR, "config.toml");
-
 export class ConfigManager {
   private configPath: string;
   private cache: DobbeConfig | null = null;
+  private cacheMtime: number = 0;
 
   constructor(configPath?: string) {
     this.configPath = configPath ?? CONFIG_PATH;
@@ -45,43 +42,62 @@ export class ConfigManager {
 
   /**
    * Read the config file. Returns defaults if file doesn't exist.
+   * Automatically invalidates cache when file changes on disk.
    */
-  read(): DobbeConfig {
-    if (this.cache) return this.cache;
+  async read(): Promise<DobbeConfig> {
+    if (this.cache) {
+      // Check if file has been modified since we cached it
+      const cached = this.cache;
+      try {
+        const stat = await fs.stat(this.configPath);
+        if (stat.mtimeMs === this.cacheMtime) {
+          return cached;
+        }
+        this.cache = null;
+      } catch {
+        // File may not exist — use cached defaults
+        return cached;
+      }
+    }
 
-    if (!fs.existsSync(this.configPath)) {
+    try {
+      const stat = await fs.stat(this.configPath);
+      this.cacheMtime = stat.mtimeMs;
+      const raw = await fs.readFile(this.configPath, "utf-8");
+      this.cache = TOML.parse(raw) as unknown as DobbeConfig;
+      return this.cache;
+    } catch {
       this.cache = this.defaults();
       return this.cache;
     }
-
-    const raw = fs.readFileSync(this.configPath, "utf-8");
-    this.cache = TOML.parse(raw) as unknown as DobbeConfig;
-    return this.cache;
   }
 
   /**
    * Write the config file.
    */
-  write(config: DobbeConfig): void {
+  async write(config: DobbeConfig): Promise<void> {
     const dir = path.dirname(this.configPath);
-    if (!fs.existsSync(dir)) {
-      fs.mkdirSync(dir, { recursive: true });
-    }
-    // TOML.stringify expects JsonMap which is compatible with our config
-    fs.writeFileSync(
+    await ensureDir(dir);
+    await atomicWriteFile(
       this.configPath,
       TOML.stringify(config as unknown as TOML.JsonMap),
-      "utf-8",
     );
     this.cache = config;
+    // Update mtime cache after write
+    try {
+      const stat = await fs.stat(this.configPath);
+      this.cacheMtime = stat.mtimeMs;
+    } catch {
+      // Ignore stat errors
+    }
   }
 
   /**
    * Get a specific config value by dot-separated path.
    * e.g., "general.default_org" → config.general.default_org
    */
-  get(keyPath: string): unknown {
-    const config = this.read();
+  async get(keyPath: string): Promise<unknown> {
+    const config = await this.read();
     const parts = keyPath.split(".");
     let current: unknown = config;
     for (const part of parts) {
@@ -96,8 +112,8 @@ export class ConfigManager {
   /**
    * Set a specific config value by dot-separated path.
    */
-  set(keyPath: string, value: unknown): void {
-    const config = this.read();
+  async set(keyPath: string, value: unknown): Promise<void> {
+    const config = await this.read();
     const parts = keyPath.split(".");
     let current: Record<string, unknown> = config as unknown as Record<string, unknown>;
 
@@ -109,14 +125,19 @@ export class ConfigManager {
     }
 
     current[parts[parts.length - 1]] = value;
-    this.write(config);
+    await this.write(config);
   }
 
   /**
    * Check if the config file exists.
    */
-  exists(): boolean {
-    return fs.existsSync(this.configPath);
+  async exists(): Promise<boolean> {
+    try {
+      await fs.access(this.configPath);
+      return true;
+    } catch {
+      return false;
+    }
   }
 
   /**

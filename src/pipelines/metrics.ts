@@ -1,5 +1,5 @@
 import type { PipelineDefinition } from "../state/machine.js";
-import { MetricsReportSchema } from "../utils/schema.js";
+import { DoraReportSchema, VelocityReportSchema } from "../utils/schema.js";
 import { z } from "zod";
 
 /**
@@ -47,7 +47,7 @@ export function createMetricsDoraPipeline(params: {
           "",
           "Return both velocity and DORA metrics with a summary.",
         ].join("\n"),
-        schema: MetricsReportSchema,
+        schema: DoraReportSchema,
         transitions: { default: "done" },
       },
       done: {
@@ -88,7 +88,7 @@ export function createMetricsVelocityPipeline(params: {
           "",
           "Return velocity metrics with a summary.",
         ].join("\n"),
-        schema: MetricsReportSchema,
+        schema: VelocityReportSchema,
         transitions: { default: "done" },
       },
       done: {

@@ -1,24 +1,16 @@
-import { describe, it, expect, beforeEach, afterEach } from "vitest";
-import * as fs from "node:fs";
-import * as path from "node:path";
-import * as os from "node:os";
-import {
-  pipelineStart,
-  pipelineStep,
-  pipelineComplete,
-  pipelineStatus,
-  pipelineList,
-  _resetForTesting,
-} from "../../src/tools/pipeline.js";
+import { describe, it, expect, beforeEach } from "vitest";
+import { PipelineService } from "../../src/tools/pipeline.js";
 
 describe("Pipeline tool handlers", () => {
+  let svc: PipelineService;
+
   beforeEach(() => {
-    _resetForTesting();
+    svc = new PipelineService();
   });
 
   describe("pipelineStart", () => {
-    it("starts a vuln-scan pipeline and returns first instruction", () => {
-      const result = pipelineStart({
+    it("starts a vuln-scan pipeline and returns first instruction", async () => {
+      const result = await svc.pipelineStart({
         command: "vuln-scan",
         params: { repo: "acme/web-app", severity: "critical,high" },
       });
@@ -29,12 +21,12 @@ describe("Pipeline tool handlers", () => {
       expect(result.next).toBe("pipeline_step");
     });
 
-    it("returns a unique session ID each time", () => {
-      const r1 = pipelineStart({
+    it("returns a unique session ID each time", async () => {
+      const r1 = await svc.pipelineStart({
         command: "vuln-scan",
         params: { repo: "acme/web" },
       });
-      const r2 = pipelineStart({
+      const r2 = await svc.pipelineStart({
         command: "vuln-scan",
         params: { repo: "acme/web" },
       });
@@ -42,21 +34,21 @@ describe("Pipeline tool handlers", () => {
       expect(r1.session_id).not.toBe(r2.session_id);
     });
 
-    it("throws for unknown command", () => {
-      expect(() =>
-        pipelineStart({ command: "nonexistent", params: {} }),
-      ).toThrow(/Unknown pipeline command/);
+    it("throws for unknown command", async () => {
+      await expect(
+        svc.pipelineStart({ command: "nonexistent", params: {} }),
+      ).rejects.toThrow(/Unknown pipeline command/);
     });
   });
 
   describe("pipelineStep", () => {
-    it("advances pipeline with valid results", () => {
-      const start = pipelineStart({
+    it("advances pipeline with valid results", async () => {
+      const start = await svc.pipelineStart({
         command: "vuln-scan",
         params: { repo: "acme/web-app" },
       });
 
-      const result = pipelineStep({
+      const result = await svc.pipelineStep({
         session_id: start.session_id,
         result: {
           groups: [],
@@ -71,36 +63,34 @@ describe("Pipeline tool handlers", () => {
       expect(result.session_id).toBe(start.session_id);
     });
 
-    it("returns validation error for invalid results", () => {
-      const start = pipelineStart({
+    it("returns validation error for invalid results", async () => {
+      const start = await svc.pipelineStart({
         command: "vuln-scan",
         params: { repo: "acme/web-app" },
       });
 
-      const result = pipelineStep({
+      const result = await svc.pipelineStep({
         session_id: start.session_id,
         result: { invalid: true },
       });
 
-      // Should return a helpful error, not crash
       expect(result.instruction).toContain("didn't match");
-      expect(result.step).toBe("scan"); // Still on scan step
+      expect(result.step).toBe("scan");
     });
 
-    it("throws for unknown session", () => {
-      expect(() =>
-        pipelineStep({ session_id: "nonexistent", result: {} }),
-      ).toThrow(/not found/);
+    it("throws for unknown session", async () => {
+      await expect(
+        svc.pipelineStep({ session_id: "nonexistent", result: {} }),
+      ).rejects.toThrow(/not found/);
     });
 
-    it("completes full pipeline: scan → report → done", () => {
-      const start = pipelineStart({
+    it("completes full pipeline: scan → report → done", async () => {
+      const start = await svc.pipelineStart({
         command: "vuln-scan",
         params: { repo: "acme/web-app" },
       });
 
-      // Scan step
-      const reportStep = pipelineStep({
+      const reportStep = await svc.pipelineStep({
         session_id: start.session_id,
         result: {
           groups: [
@@ -131,8 +121,7 @@ describe("Pipeline tool handlers", () => {
       });
       expect(reportStep.step).toBe("report");
 
-      // Report step
-      const doneStep = pipelineStep({
+      const doneStep = await svc.pipelineStep({
         session_id: start.session_id,
         result: { report: "# Report\n1 vulnerability found." },
       });
@@ -141,14 +130,13 @@ describe("Pipeline tool handlers", () => {
   });
 
   describe("pipelineComplete", () => {
-    it("finalizes a completed pipeline", () => {
-      const start = pipelineStart({
+    it("finalizes a completed pipeline", async () => {
+      const start = await svc.pipelineStart({
         command: "vuln-scan",
         params: { repo: "acme/web-app" },
       });
 
-      // Walk through pipeline
-      pipelineStep({
+      await svc.pipelineStep({
         session_id: start.session_id,
         result: {
           groups: [],
@@ -158,12 +146,12 @@ describe("Pipeline tool handlers", () => {
           summary: "Clean.",
         },
       });
-      pipelineStep({
+      await svc.pipelineStep({
         session_id: start.session_id,
         result: { report: "Clean scan." },
       });
 
-      const complete = pipelineComplete({
+      const complete = await svc.pipelineComplete({
         session_id: start.session_id,
         result: { summary: "All clear." },
       });
@@ -173,13 +161,13 @@ describe("Pipeline tool handlers", () => {
       expect(complete.session_id).toBe(start.session_id);
     });
 
-    it("works without a result object", () => {
-      const start = pipelineStart({
+    it("works without a result object", async () => {
+      const start = await svc.pipelineStart({
         command: "vuln-scan",
         params: { repo: "acme/web-app" },
       });
 
-      const complete = pipelineComplete({
+      const complete = await svc.pipelineComplete({
         session_id: start.session_id,
       });
 
@@ -187,13 +175,13 @@ describe("Pipeline tool handlers", () => {
       expect(complete.summary).toContain("completed");
     });
 
-    it("includes pr_url in summary when present", () => {
-      const start = pipelineStart({
+    it("includes pr_url in summary when present", async () => {
+      const start = await svc.pipelineStart({
         command: "vuln-scan",
         params: { repo: "acme/web-app" },
       });
 
-      const complete = pipelineComplete({
+      const complete = await svc.pipelineComplete({
         session_id: start.session_id,
         result: { pr_url: "https://github.com/acme/web-app/pull/42" },
       });
@@ -201,34 +189,34 @@ describe("Pipeline tool handlers", () => {
       expect(complete.summary).toContain("https://github.com/acme/web-app/pull/42");
     });
 
-    it("throws for unknown session", () => {
-      expect(() =>
-        pipelineComplete({ session_id: "nonexistent" }),
-      ).toThrow(/not found/);
+    it("throws for unknown session", async () => {
+      await expect(
+        svc.pipelineComplete({ session_id: "nonexistent" }),
+      ).rejects.toThrow(/not found/);
     });
   });
 
   describe("pipelineStatus", () => {
-    it("returns current pipeline state", () => {
-      const start = pipelineStart({
+    it("returns current pipeline state", async () => {
+      const start = await svc.pipelineStart({
         command: "vuln-scan",
         params: { repo: "acme/web-app" },
       });
 
-      const status = pipelineStatus({ session_id: start.session_id });
+      const status = await svc.pipelineStatus({ session_id: start.session_id });
       expect(status.currentState).toBe("scan");
       expect(status.done).toBe(false);
       expect(status.iteration).toBe(1);
       expect(status.stepsCompleted).toEqual([]);
     });
 
-    it("reflects state after advancing", () => {
-      const start = pipelineStart({
+    it("reflects state after advancing", async () => {
+      const start = await svc.pipelineStart({
         command: "vuln-scan",
         params: { repo: "acme/web-app" },
       });
 
-      pipelineStep({
+      await svc.pipelineStep({
         session_id: start.session_id,
         result: {
           groups: [],
@@ -239,7 +227,7 @@ describe("Pipeline tool handlers", () => {
         },
       });
 
-      const status = pipelineStatus({ session_id: start.session_id });
+      const status = await svc.pipelineStatus({ session_id: start.session_id });
       expect(status.currentState).toBe("report");
       expect(status.stepsCompleted).toContain("scan");
     });
@@ -247,20 +235,19 @@ describe("Pipeline tool handlers", () => {
 
   describe("pipelineList", () => {
     it("lists available commands", () => {
-      const result = pipelineList();
+      const result = svc.pipelineList();
       expect(result.commands).toContain("vuln-scan");
     });
   });
 
   describe("pipelineStep edge cases", () => {
-    it("handles outcome parameter", () => {
-      const start = pipelineStart({
+    it("handles outcome parameter", async () => {
+      const start = await svc.pipelineStart({
         command: "vuln-scan",
         params: { repo: "acme/web-app" },
       });
 
-      // Pass an outcome — for vuln-scan, only "default" is valid
-      const result = pipelineStep({
+      const result = await svc.pipelineStep({
         session_id: start.session_id,
         result: {
           groups: [],
@@ -277,15 +264,15 @@ describe("Pipeline tool handlers", () => {
   });
 
   describe("pipelineStatus edge cases", () => {
-    it("shows done after complete", () => {
-      const start = pipelineStart({
+    it("shows done after complete", async () => {
+      const start = await svc.pipelineStart({
         command: "vuln-scan",
         params: { repo: "acme/web-app" },
       });
 
-      pipelineComplete({ session_id: start.session_id });
+      await svc.pipelineComplete({ session_id: start.session_id });
 
-      const status = pipelineStatus({ session_id: start.session_id });
+      const status = await svc.pipelineStatus({ session_id: start.session_id });
       expect(status.done).toBe(true);
     });
   });

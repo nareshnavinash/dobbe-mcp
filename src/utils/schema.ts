@@ -121,7 +121,7 @@ export const PrInfoSchema = z.object({
   number: z.number(),
   title: z.string(),
   author: z.string(),
-  repo: z.string(),
+  repo: z.string().optional(),
   url: z.string().optional(),
   description: z.string().optional(),
   labels: z.array(z.string()).optional(),
@@ -362,6 +362,18 @@ export const DoraMetricsSchema = z.object({
 
 export const MetricsReportSchema = z.object({
   velocity: VelocityMetricsSchema.optional(),
+  dora: DoraMetricsSchema.optional(),
+  summary: z.string(),
+});
+
+export const DoraReportSchema = z.object({
+  dora: DoraMetricsSchema,
+  velocity: VelocityMetricsSchema.optional(),
+  summary: z.string(),
+});
+
+export const VelocityReportSchema = z.object({
+  velocity: VelocityMetricsSchema,
   dora: DoraMetricsSchema.optional(),
   summary: z.string(),
 });

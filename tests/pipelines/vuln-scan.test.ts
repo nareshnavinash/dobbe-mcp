@@ -1,5 +1,4 @@
 import { describe, it, expect, beforeEach } from "vitest";
-import { z } from "zod";
 import { StateMachine } from "../../src/state/machine.js";
 import { createVulnScanPipeline } from "../../src/pipelines/vuln-scan.js";
 import { VulnScanResultSchema, VulnScanReportSchema } from "../../src/utils/schema.js";

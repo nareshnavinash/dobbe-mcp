@@ -1,4 +1,4 @@
-import * as fs from "node:fs";
+import * as fs from "node:fs/promises";
 import * as path from "node:path";
 
 /**
@@ -39,26 +39,37 @@ const SIGNATURES: FrameworkSignature[] = [
   { framework: "nodejs", files: ["package.json"], packages: [] },
 ];
 
+async function fileExists(filePath: string): Promise<boolean> {
+  try {
+    await fs.access(filePath);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 /**
  * Detect frameworks at the given project path.
  */
-export function detectFrameworks(projectPath: string): Framework[] {
+export async function detectFrameworks(projectPath: string): Promise<Framework[]> {
   const detected: Framework[] = [];
 
   for (const sig of SIGNATURES) {
     // Check for signature files
+    let found = false;
     for (const file of sig.files) {
-      if (fs.existsSync(path.join(projectPath, file))) {
+      if (await fileExists(path.join(projectPath, file))) {
         detected.push(sig.framework);
+        found = true;
         break;
       }
     }
 
     // Check package manifests for signature packages
-    if (!detected.includes(sig.framework) && sig.packages.length > 0) {
-      if (checkPackageJson(projectPath, sig.packages) ||
-          checkRequirements(projectPath, sig.packages) ||
-          checkPyproject(projectPath, sig.packages)) {
+    if (!found && sig.packages.length > 0) {
+      if (await checkPackageJson(projectPath, sig.packages) ||
+          await checkRequirements(projectPath, sig.packages) ||
+          await checkPyproject(projectPath, sig.packages)) {
         detected.push(sig.framework);
       }
     }
@@ -67,12 +78,12 @@ export function detectFrameworks(projectPath: string): Framework[] {
   return detected;
 }
 
-function checkPackageJson(projectPath: string, packages: string[]): boolean {
+async function checkPackageJson(projectPath: string, packages: string[]): Promise<boolean> {
   const pkgPath = path.join(projectPath, "package.json");
-  if (!fs.existsSync(pkgPath)) return false;
+  if (!(await fileExists(pkgPath))) return false;
 
   try {
-    const pkg = JSON.parse(fs.readFileSync(pkgPath, "utf-8"));
+    const pkg = JSON.parse(await fs.readFile(pkgPath, "utf-8"));
     const allDeps = {
       ...((pkg.dependencies as Record<string, string>) ?? {}),
       ...((pkg.devDependencies as Record<string, string>) ?? {}),
@@ -83,24 +94,33 @@ function checkPackageJson(projectPath: string, packages: string[]): boolean {
   }
 }
 
-function checkRequirements(projectPath: string, packages: string[]): boolean {
+async function checkRequirements(projectPath: string, packages: string[]): Promise<boolean> {
   const reqPath = path.join(projectPath, "requirements.txt");
-  if (!fs.existsSync(reqPath)) return false;
+  if (!(await fileExists(reqPath))) return false;
 
   try {
-    const content = fs.readFileSync(reqPath, "utf-8").toLowerCase();
-    return packages.some((p) => content.includes(p.toLowerCase()));
+    const lines = (await fs.readFile(reqPath, "utf-8")).toLowerCase().split("\n");
+    return packages.some((p) => {
+      const lp = p.toLowerCase();
+      // Match package at start of line, ignoring comments and version specifiers
+      return lines.some((line) => {
+        const trimmed = line.trim();
+        if (trimmed.startsWith("#")) return false;
+        return trimmed === lp || trimmed.startsWith(lp + "=") || trimmed.startsWith(lp + "[") ||
+               trimmed.startsWith(lp + ">") || trimmed.startsWith(lp + "<") || trimmed.startsWith(lp + "!");
+      });
+    });
   } catch {
     return false;
   }
 }
 
-function checkPyproject(projectPath: string, packages: string[]): boolean {
+async function checkPyproject(projectPath: string, packages: string[]): Promise<boolean> {
   const pyprojectPath = path.join(projectPath, "pyproject.toml");
-  if (!fs.existsSync(pyprojectPath)) return false;
+  if (!(await fileExists(pyprojectPath))) return false;
 
   try {
-    const content = fs.readFileSync(pyprojectPath, "utf-8").toLowerCase();
+    const content = (await fs.readFile(pyprojectPath, "utf-8")).toLowerCase();
     return packages.some((p) => content.includes(p.toLowerCase()));
   } catch {
     return false;

@@ -1,4 +1,4 @@
-import * as fs from "node:fs";
+import * as fs from "node:fs/promises";
 import * as path from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -6,11 +6,10 @@ import { fileURLToPath } from "node:url";
  * Installer: copies skills to ~/.claude/skills/ and configures MCP in settings.json.
  */
 
+import { DOBBE_DIR } from "./utils/paths.js";
+
 const HOME = process.env.HOME ?? process.env.USERPROFILE ?? ".";
 const CLAUDE_DIR = path.join(HOME, ".claude");
-const CLAUDE_SKILLS_DIR = path.join(CLAUDE_DIR, "skills");
-const CLAUDE_SETTINGS = path.join(CLAUDE_DIR, "settings.json");
-const DOBBE_DIR = path.join(HOME, ".dobbe");
 
 // Resolve the skills directory relative to this file
 const __filename = fileURLToPath(import.meta.url);
@@ -33,6 +32,15 @@ export interface InstallOptions {
   skillsSource?: string;
 }
 
+async function fileExists(filePath: string): Promise<boolean> {
+  try {
+    await fs.access(filePath);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 /**
  * Install dobbe: copy skills + configure MCP server.
  */
@@ -50,13 +58,13 @@ export async function install(options: InstallOptions = {}): Promise<{
   log("Installing dobbe...\n");
 
   // 1. Copy skills
-  const skillsInstalled = copySkills(skillsSource, skillsDir, log);
+  const skillsInstalled = await copySkills(skillsSource, skillsDir, log);
 
   // 2. Configure MCP server in settings.json
-  const mcpConfigured = configureMcp(settingsPath, log);
+  const mcpConfigured = await configureMcp(settingsPath, log);
 
   // 3. Create ~/.dobbe/ directory structure
-  const configCreated = ensureDobbe(log);
+  const configCreated = await ensureDobbe(log);
 
   log("\n✓ dobbe installed successfully!");
   log(`  ${skillsInstalled} skills installed to ${skillsDir}`);
@@ -82,10 +90,10 @@ export async function uninstall(
   log("Uninstalling dobbe...\n");
 
   // 1. Remove skills
-  const skillsRemoved = removeSkills(skillsDir, log);
+  const skillsRemoved = await removeSkills(skillsDir, log);
 
   // 2. Remove MCP config
-  const mcpRemoved = removeMcp(settingsPath, log);
+  const mcpRemoved = await removeMcp(settingsPath, log);
 
   if (!options.quiet) {
     log("\n✓ dobbe uninstalled.");
@@ -99,20 +107,20 @@ export async function uninstall(
 
 // ─── Internal helpers ───
 
-function copySkills(
+async function copySkills(
   sourceDir: string,
   targetDir: string,
   log: (...args: unknown[]) => void,
-): number {
-  if (!fs.existsSync(sourceDir)) {
+): Promise<number> {
+  if (!(await fileExists(sourceDir))) {
     log("  Warning: Skills source not found at", sourceDir);
     return 0;
   }
 
-  fs.mkdirSync(targetDir, { recursive: true });
+  await fs.mkdir(targetDir, { recursive: true });
 
   let count = 0;
-  const entries = fs.readdirSync(sourceDir, { withFileTypes: true });
+  const entries = await fs.readdir(sourceDir, { withFileTypes: true });
 
   for (const entry of entries) {
     if (!entry.isDirectory() || !entry.name.startsWith(SKILL_PREFIX)) continue;
@@ -121,7 +129,7 @@ function copySkills(
     const dst = path.join(targetDir, entry.name);
 
     // Copy directory recursively
-    copyDir(src, dst);
+    await copyDir(src, dst);
     count++;
     log(`  ✓ ${entry.name}`);
   }
@@ -129,36 +137,36 @@ function copySkills(
   return count;
 }
 
-function copyDir(src: string, dst: string): void {
-  fs.mkdirSync(dst, { recursive: true });
-  const entries = fs.readdirSync(src, { withFileTypes: true });
+async function copyDir(src: string, dst: string): Promise<void> {
+  await fs.mkdir(dst, { recursive: true });
+  const entries = await fs.readdir(src, { withFileTypes: true });
 
   for (const entry of entries) {
     const srcPath = path.join(src, entry.name);
     const dstPath = path.join(dst, entry.name);
 
     if (entry.isDirectory()) {
-      copyDir(srcPath, dstPath);
+      await copyDir(srcPath, dstPath);
     } else {
-      fs.copyFileSync(srcPath, dstPath);
+      await fs.copyFile(srcPath, dstPath);
     }
   }
 }
 
-function removeSkills(
+async function removeSkills(
   skillsDir: string,
   log: (...args: unknown[]) => void,
-): number {
-  if (!fs.existsSync(skillsDir)) return 0;
+): Promise<number> {
+  if (!(await fileExists(skillsDir))) return 0;
 
   let count = 0;
-  const entries = fs.readdirSync(skillsDir, { withFileTypes: true });
+  const entries = await fs.readdir(skillsDir, { withFileTypes: true });
 
   for (const entry of entries) {
     if (!entry.isDirectory() || !entry.name.startsWith(SKILL_PREFIX)) continue;
 
     const skillPath = path.join(skillsDir, entry.name);
-    fs.rmSync(skillPath, { recursive: true, force: true });
+    await fs.rm(skillPath, { recursive: true, force: true });
     count++;
     log(`  ✗ ${entry.name}`);
   }
@@ -166,21 +174,21 @@ function removeSkills(
   return count;
 }
 
-function configureMcp(
+async function configureMcp(
   settingsPath: string,
   log: (...args: unknown[]) => void,
-): boolean {
+): Promise<boolean> {
   let settings: Record<string, unknown> = {};
 
   // Read existing settings
-  if (fs.existsSync(settingsPath)) {
+  if (await fileExists(settingsPath)) {
     try {
-      settings = JSON.parse(fs.readFileSync(settingsPath, "utf-8"));
+      settings = JSON.parse(await fs.readFile(settingsPath, "utf-8"));
     } catch {
       log("  Warning: Could not parse existing settings.json");
     }
   } else {
-    fs.mkdirSync(path.dirname(settingsPath), { recursive: true });
+    await fs.mkdir(path.dirname(settingsPath), { recursive: true });
   }
 
   // Add MCP server config
@@ -193,27 +201,27 @@ function configureMcp(
   mcpServers.dobbe = MCP_SERVER_CONFIG;
   settings.mcpServers = mcpServers;
 
-  fs.writeFileSync(settingsPath, JSON.stringify(settings, null, 2), "utf-8");
+  await fs.writeFile(settingsPath, JSON.stringify(settings, null, 2), "utf-8");
   log("  ✓ MCP server configured");
 
   return true;
 }
 
-function removeMcp(
+async function removeMcp(
   settingsPath: string,
   log: (...args: unknown[]) => void,
-): boolean {
-  if (!fs.existsSync(settingsPath)) return false;
+): Promise<boolean> {
+  if (!(await fileExists(settingsPath))) return false;
 
   try {
-    const settings = JSON.parse(fs.readFileSync(settingsPath, "utf-8"));
+    const settings = JSON.parse(await fs.readFile(settingsPath, "utf-8"));
     const mcpServers = settings.mcpServers as Record<string, unknown> | undefined;
 
     if (!mcpServers?.dobbe) return false;
 
     delete mcpServers.dobbe;
     settings.mcpServers = mcpServers;
-    fs.writeFileSync(settingsPath, JSON.stringify(settings, null, 2), "utf-8");
+    await fs.writeFile(settingsPath, JSON.stringify(settings, null, 2), "utf-8");
     log("  ✗ MCP server config removed");
     return true;
   } catch {
@@ -221,12 +229,12 @@ function removeMcp(
   }
 }
 
-function ensureDobbe(log: (...args: unknown[]) => void): boolean {
-  const created = !fs.existsSync(DOBBE_DIR);
+async function ensureDobbe(log: (...args: unknown[]) => void): Promise<boolean> {
+  const created = !(await fileExists(DOBBE_DIR));
 
-  fs.mkdirSync(path.join(DOBBE_DIR, "cache"), { recursive: true });
-  fs.mkdirSync(path.join(DOBBE_DIR, "state"), { recursive: true });
-  fs.mkdirSync(path.join(DOBBE_DIR, "sessions"), { recursive: true });
+  await fs.mkdir(path.join(DOBBE_DIR, "cache"), { recursive: true });
+  await fs.mkdir(path.join(DOBBE_DIR, "state"), { recursive: true });
+  await fs.mkdir(path.join(DOBBE_DIR, "sessions"), { recursive: true });
 
   if (created) {
     log("  ✓ Created ~/.dobbe/ directory");

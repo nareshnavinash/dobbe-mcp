@@ -33,8 +33,10 @@ export interface PipelineDefinition {
 export interface PipelineSession {
   /** Unique session identifier. */
   id: string;
-  /** Pipeline definition name. */
+  /** Pipeline definition name (includes random suffix). */
   pipeline: string;
+  /** Original pipeline command name (e.g., "vuln-scan"). Used for recovery. */
+  command: string;
   /** Current state in the state machine. */
   currentState: string;
   /** Current iteration count (for retry loops). */
@@ -127,12 +129,14 @@ export class StateMachine {
     pipelineName: string,
     sessionId: string,
     params: Record<string, unknown>,
+    command?: string,
   ): PipelineSession {
     const def = this.getPipeline(pipelineName);
     const now = new Date().toISOString();
     return {
       id: sessionId,
       pipeline: pipelineName,
+      command: command ?? pipelineName,
       currentState: def.initialState,
       iteration: 1,
       stepResults: {},
@@ -319,13 +323,37 @@ export function describeZodType(schema: z.ZodType): string {
   if (schema instanceof z.ZodString) return "string";
   if (schema instanceof z.ZodNumber) return "number";
   if (schema instanceof z.ZodBoolean) return "boolean";
-  if (schema instanceof z.ZodArray) return "array";
-  if (schema instanceof z.ZodObject) return "object";
+  if (schema instanceof z.ZodArray) {
+    const inner = describeZodType((schema as z.ZodArray<z.ZodType>).element);
+    return `${inner}[]`;
+  }
+  if (schema instanceof z.ZodObject) {
+    const shape = schema.shape as Record<string, z.ZodType>;
+    const fields = Object.entries(shape)
+      .map(([k, v]) => `${k}: ${describeZodType(v)}`)
+      .join(", ");
+    return `{ ${fields} }`;
+  }
   if (schema instanceof z.ZodOptional) {
     return describeZodType(schema.unwrap()) + "?";
   }
+  if (schema instanceof z.ZodNullable) {
+    return describeZodType(schema.unwrap()) + " | null";
+  }
+  if (schema instanceof z.ZodDefault) {
+    return describeZodType(schema.removeDefault());
+  }
   if (schema instanceof z.ZodEnum) {
     return (schema.options as string[]).join(" | ");
+  }
+  if (schema instanceof z.ZodLiteral) {
+    return JSON.stringify(schema.value);
+  }
+  if (schema instanceof z.ZodUnion) {
+    return (schema.options as z.ZodType[]).map(describeZodType).join(" | ");
+  }
+  if (schema instanceof z.ZodRecord) {
+    return "Record<string, unknown>";
   }
   return "unknown";
 }

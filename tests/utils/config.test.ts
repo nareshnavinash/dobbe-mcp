@@ -20,14 +20,14 @@ describe("ConfigManager", () => {
   });
 
   describe("read", () => {
-    it("returns defaults when no config file exists", () => {
-      const result = config.read();
+    it("returns defaults when no config file exists", async () => {
+      const result = await config.read();
       expect(result.general?.default_format).toBe("table");
       expect(result.general?.default_severity).toBe("critical,high,medium,low");
       expect(result.timeouts?.scan).toBe(300);
     });
 
-    it("reads existing config file", () => {
+    it("reads existing config file", async () => {
       const toml = [
         "[general]",
         'default_org = "acme"',
@@ -38,22 +38,22 @@ describe("ConfigManager", () => {
       ].join("\n");
       fs.writeFileSync(configPath, toml, "utf-8");
 
-      const result = config.read();
+      const result = await config.read();
       expect(result.general?.default_org).toBe("acme");
       expect(result.general?.default_format).toBe("json");
       expect(result.timeouts?.scan).toBe(600);
     });
 
-    it("caches config in memory", () => {
-      const result1 = config.read();
-      const result2 = config.read();
+    it("caches config in memory", async () => {
+      const result1 = await config.read();
+      const result2 = await config.read();
       expect(result1).toBe(result2); // Same reference
     });
   });
 
   describe("write", () => {
-    it("writes config to file", () => {
-      config.write({
+    it("writes config to file", async () => {
+      await config.write({
         general: { default_org: "acme", default_format: "json" },
       });
 
@@ -62,80 +62,80 @@ describe("ConfigManager", () => {
       expect(raw).toContain("json");
     });
 
-    it("creates parent directory if needed", () => {
+    it("creates parent directory if needed", async () => {
       const nestedPath = path.join(tmpDir, "nested", "dir", "config.toml");
       const nestedConfig = new ConfigManager(nestedPath);
 
-      nestedConfig.write({ general: { default_org: "test" } });
+      await nestedConfig.write({ general: { default_org: "test" } });
       expect(fs.existsSync(nestedPath)).toBe(true);
     });
 
-    it("updates cache after write", () => {
-      config.write({ general: { default_org: "acme" } });
-      const result = config.read();
+    it("updates cache after write", async () => {
+      await config.write({ general: { default_org: "acme" } });
+      const result = await config.read();
       expect(result.general?.default_org).toBe("acme");
     });
   });
 
   describe("get", () => {
-    it("gets nested values by dot path", () => {
-      config.write({
+    it("gets nested values by dot path", async () => {
+      await config.write({
         general: { default_org: "acme", default_format: "table" },
         timeouts: { scan: 500 },
       });
 
-      expect(config.get("general.default_org")).toBe("acme");
-      expect(config.get("timeouts.scan")).toBe(500);
+      expect(await config.get("general.default_org")).toBe("acme");
+      expect(await config.get("timeouts.scan")).toBe(500);
     });
 
-    it("returns undefined for missing keys", () => {
-      config.write({ general: { default_org: "acme" } });
-      expect(config.get("general.nonexistent")).toBeUndefined();
-      expect(config.get("missing.path")).toBeUndefined();
+    it("returns undefined for missing keys", async () => {
+      await config.write({ general: { default_org: "acme" } });
+      expect(await config.get("general.nonexistent")).toBeUndefined();
+      expect(await config.get("missing.path")).toBeUndefined();
     });
 
-    it("returns undefined for deeply missing paths", () => {
-      config.write({});
-      expect(config.get("a.b.c.d")).toBeUndefined();
+    it("returns undefined for deeply missing paths", async () => {
+      await config.write({});
+      expect(await config.get("a.b.c.d")).toBeUndefined();
     });
   });
 
   describe("set", () => {
-    it("sets nested values by dot path", () => {
-      config.set("general.default_org", "neworg");
-      expect(config.get("general.default_org")).toBe("neworg");
+    it("sets nested values by dot path", async () => {
+      await config.set("general.default_org", "neworg");
+      expect(await config.get("general.default_org")).toBe("neworg");
     });
 
-    it("creates intermediate objects", () => {
-      config.set("notifications.slack_channel", "#alerts");
-      expect(config.get("notifications.slack_channel")).toBe("#alerts");
+    it("creates intermediate objects", async () => {
+      await config.set("notifications.slack_channel", "#alerts");
+      expect(await config.get("notifications.slack_channel")).toBe("#alerts");
     });
 
-    it("persists to file", () => {
-      config.set("general.default_org", "acme");
+    it("persists to file", async () => {
+      await config.set("general.default_org", "acme");
 
       // Read with a fresh instance
       const fresh = new ConfigManager(configPath);
-      expect(fresh.get("general.default_org")).toBe("acme");
+      expect(await fresh.get("general.default_org")).toBe("acme");
     });
   });
 
   describe("exists", () => {
-    it("returns false when file does not exist", () => {
-      expect(config.exists()).toBe(false);
+    it("returns false when file does not exist", async () => {
+      expect(await config.exists()).toBe(false);
     });
 
-    it("returns true after writing", () => {
-      config.write({ general: {} });
-      expect(config.exists()).toBe(true);
+    it("returns true after writing", async () => {
+      await config.write({ general: {} });
+      expect(await config.exists()).toBe(true);
     });
   });
 
   describe("invalidate", () => {
-    it("clears the in-memory cache", () => {
-      const result1 = config.read();
+    it("clears the in-memory cache", async () => {
+      const result1 = await config.read();
       config.invalidate();
-      const result2 = config.read();
+      const result2 = await config.read();
       expect(result1).not.toBe(result2); // Different references
     });
   });

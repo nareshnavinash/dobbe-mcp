@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>dobbe — DevOps autopilot for Claude Code</title>
+  <meta name="description" content="Scan vulns, fix deps, review PRs, gen tests, track DORA metrics. 16 commands, zero config. MCP server with deterministic retry loops.">
+  <meta property="og:title" content="dobbe — DevOps autopilot for Claude Code">
+  <meta property="og:description" content="16 commands. Zero config. Deterministic retry loops. The DevOps toolkit for Claude Code.">
+  <meta property="og:type" content="website">
+  <style>
+    :root {
+      --bg: #0d1117;
+      --surface: #161b22;
+      --border: #30363d;
+      --text: #e6edf3;
+      --text-muted: #8b949e;
+      --accent: #58a6ff;
+      --accent-hover: #79c0ff;
+      --green: #3fb950;
+      --purple: #bc8cff;
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.6;
+    }
+    a { color: var(--accent); text-decoration: none; }
+    a:hover { color: var(--accent-hover); }
+
+    /* Hero */
+    .hero {
+      text-align: center;
+      padding: 80px 20px 60px;
+      max-width: 800px;
+      margin: 0 auto;
+    }
+    .hero h1 {
+      font-size: 3.5rem;
+      font-weight: 800;
+      letter-spacing: -0.03em;
+      margin-bottom: 16px;
+    }
+    .hero .tagline {
+      font-size: 1.25rem;
+      color: var(--text-muted);
+      margin-bottom: 32px;
+      max-width: 600px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+    .hero .install-box {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 16px 24px;
+      font-family: "SFMono-Regular", Consolas, monospace;
+      font-size: 1.1rem;
+      display: inline-block;
+      margin-bottom: 24px;
+      cursor: pointer;
+      transition: border-color 0.2s;
+    }
+    .hero .install-box:hover { border-color: var(--accent); }
+    .hero .install-box .prefix { color: var(--text-muted); }
+    .hero .cta {
+      display: inline-block;
+      background: var(--accent);
+      color: var(--bg);
+      padding: 12px 32px;
+      border-radius: 6px;
+      font-weight: 600;
+      font-size: 1rem;
+      transition: background 0.2s;
+    }
+    .hero .cta:hover { background: var(--accent-hover); color: var(--bg); }
+
+    /* Stats */
+    .stats {
+      display: flex;
+      justify-content: center;
+      gap: 48px;
+      padding: 40px 20px;
+      border-top: 1px solid var(--border);
+      border-bottom: 1px solid var(--border);
+      max-width: 700px;
+      margin: 0 auto;
+    }
+    .stat { text-align: center; }
+    .stat .number { font-size: 2rem; font-weight: 700; color: var(--green); }
+    .stat .label { font-size: 0.85rem; color: var(--text-muted); }
+
+    /* Features */
+    .features {
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 60px 20px;
+    }
+    .features h2 {
+      text-align: center;
+      font-size: 2rem;
+      margin-bottom: 40px;
+    }
+    .feature-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 24px;
+    }
+    .feature-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 24px;
+    }
+    .feature-card h3 {
+      font-size: 1.1rem;
+      margin-bottom: 8px;
+    }
+    .feature-card p {
+      color: var(--text-muted);
+      font-size: 0.9rem;
+    }
+    .feature-card .cmd {
+      font-family: monospace;
+      color: var(--purple);
+      font-size: 0.85rem;
+      margin-top: 12px;
+    }
+
+    /* How it works */
+    .how-it-works {
+      max-width: 700px;
+      margin: 0 auto;
+      padding: 60px 20px;
+    }
+    .how-it-works h2 {
+      text-align: center;
+      font-size: 2rem;
+      margin-bottom: 40px;
+    }
+    .steps {
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+    }
+    .step {
+      display: flex;
+      gap: 20px;
+      align-items: flex-start;
+    }
+    .step-number {
+      flex-shrink: 0;
+      width: 40px;
+      height: 40px;
+      background: var(--accent);
+      color: var(--bg);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      font-size: 1.1rem;
+    }
+    .step-content h3 { font-size: 1rem; margin-bottom: 4px; }
+    .step-content p { color: var(--text-muted); font-size: 0.9rem; }
+    .step-content code {
+      background: var(--surface);
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-size: 0.85rem;
+    }
+
+    /* Footer */
+    footer {
+      text-align: center;
+      padding: 40px 20px;
+      border-top: 1px solid var(--border);
+      color: var(--text-muted);
+      font-size: 0.85rem;
+    }
+    footer a { color: var(--text-muted); }
+    footer a:hover { color: var(--accent); }
+
+    @media (max-width: 600px) {
+      .hero h1 { font-size: 2.5rem; }
+      .stats { flex-direction: column; gap: 24px; }
+      .feature-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+  <section class="hero">
+    <h1>dobbe</h1>
+    <p class="tagline">DevOps autopilot for Claude Code. Scan vulns, fix deps, review PRs, generate tests, track DORA metrics. 16 commands, zero config.</p>
+    <div class="install-box" onclick="navigator.clipboard.writeText('npx dobbe install')" title="Click to copy">
+      <span class="prefix">$</span> npx dobbe install
+    </div>
+    <br><br>
+    <a href="https://github.com/nareshnavinash/dobbe-mcp" class="cta">View on GitHub</a>
+  </section>
+
+  <section class="stats">
+    <div class="stat">
+      <div class="number">16</div>
+      <div class="label">Commands</div>
+    </div>
+    <div class="stat">
+      <div class="number">13</div>
+      <div class="label">Pipelines</div>
+    </div>
+    <div class="stat">
+      <div class="number">3</div>
+      <div class="label">Retry Loops</div>
+    </div>
+    <div class="stat">
+      <div class="number">266</div>
+      <div class="label">Tests</div>
+    </div>
+  </section>
+
+  <section class="features">
+    <h2>What dobbe does</h2>
+    <div class="feature-grid">
+      <div class="feature-card">
+        <h3>Vulnerability Resolution</h3>
+        <p>Scan Dependabot alerts, triage by risk, upgrade packages, run tests, retry on failure, create PR. Fully automated.</p>
+        <div class="cmd">/dobbe-vuln-resolve</div>
+      </div>
+      <div class="feature-card">
+        <h3>Code Review</h3>
+        <p>Fetch open PRs, perform deep AI review with risk assessment, post comments directly to GitHub.</p>
+        <div class="cmd">/dobbe-review-post</div>
+      </div>
+      <div class="feature-card">
+        <h3>Test Generation</h3>
+        <p>Find coverage gaps, generate tests, verify they pass, retry if not, create PR. Up to 3 iterations.</p>
+        <div class="cmd">/dobbe-test-gen</div>
+      </div>
+      <div class="feature-card">
+        <h3>DORA Metrics</h3>
+        <p>Deploy frequency, lead time, change failure rate, MTTR. Computed from your GitHub data.</p>
+        <div class="cmd">/dobbe-metrics-dora</div>
+      </div>
+      <div class="feature-card">
+        <h3>Incident Triage</h3>
+        <p>Fetch Sentry issues, AI-powered root cause analysis, severity assessment, resolution suggestions.</p>
+        <div class="cmd">/dobbe-incident-triage</div>
+      </div>
+      <div class="feature-card">
+        <h3>Security Audit</h3>
+        <p>Vulnerabilities, licenses, secrets, code quality. Single command, comprehensive report.</p>
+        <div class="cmd">/dobbe-audit-report</div>
+      </div>
+    </div>
+  </section>
+
+  <section class="how-it-works">
+    <h2>How it works</h2>
+    <div class="steps">
+      <div class="step">
+        <div class="step-number">1</div>
+        <div class="step-content">
+          <h3>Install in 10 seconds</h3>
+          <p>Run <code>npx dobbe install</code> and restart Claude Code. Skills appear as <code>/dobbe-*</code> slash commands.</p>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-number">2</div>
+        <div class="step-content">
+          <h3>Run a command</h3>
+          <p>Type <code>/dobbe-vuln-resolve</code> in Claude Code. The MCP server starts a state machine pipeline and returns step-by-step instructions.</p>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-number">3</div>
+        <div class="step-content">
+          <h3>Claude does the work</h3>
+          <p>Claude follows instructions, submits results at each step. If tests fail, the server automatically retries with feedback. You get a PR at the end.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    <p>
+      <a href="https://github.com/nareshnavinash/dobbe-mcp">GitHub</a> &middot;
+      <a href="https://www.npmjs.com/package/dobbe">npm</a> &middot;
+      <a href="https://github.com/nareshnavinash/dobbe-mcp/blob/main/LICENSE">MIT License</a>
+    </p>
+    <p style="margin-top: 8px;">Built by <a href="https://github.com/nareshnavinash">Naresh Sekar</a></p>
+  </footer>
+
+</body>
+</html>

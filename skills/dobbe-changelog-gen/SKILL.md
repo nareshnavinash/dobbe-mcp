@@ -14,5 +14,5 @@ When user asks to generate a changelog, release notes, or summarize changes betw
 
 ## Rules
 - NEVER skip steps
-- fromRef is required -- always ask the user for a starting tag or SHA if not provided
+- fromRef defaults to HEAD~10 if not provided -- ask the user for a starting tag or SHA for more precise results
 - Default toRef to HEAD when not specified

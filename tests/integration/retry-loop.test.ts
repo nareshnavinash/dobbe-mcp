@@ -1,11 +1,5 @@
 import { describe, it, expect, beforeEach } from "vitest";
-import {
-  pipelineStart,
-  pipelineStep,
-  pipelineComplete,
-  pipelineStatus,
-  _resetForTesting,
-} from "../../src/tools/pipeline.js";
+import { PipelineService } from "../../src/tools/pipeline.js";
 
 /**
  * Integration tests for the vuln-resolve retry loop.
@@ -14,12 +8,14 @@ import {
  */
 
 describe("vuln-resolve retry loop (integration)", () => {
+  let svc: PipelineService;
+
   beforeEach(() => {
-    _resetForTesting();
+    svc = new PipelineService();
   });
 
-  function startResolvePipeline() {
-    return pipelineStart({
+  async function startResolvePipeline() {
+    return svc.pipelineStart({
       command: "vuln-resolve",
       params: { repo: "acme/web-app", severity: "critical,high", maxIterations: 3 },
     });
@@ -44,38 +40,32 @@ describe("vuln-resolve retry loop (integration)", () => {
   const validCommitResult = { committed: true, message: "fix: upgrade lodash" };
 
   describe("happy path (no retries needed)", () => {
-    it("completes scan → fix → commit → verify(pass) → report → pr → done", () => {
-      const start = startResolvePipeline();
+    it("completes scan → fix → commit → verify(pass) → report → pr → done", async () => {
+      const start = await startResolvePipeline();
       expect(start.step).toBe("scan");
 
-      // Scan
-      const fix = pipelineStep({ session_id: start.session_id, result: validScanResult });
+      const fix = await svc.pipelineStep({ session_id: start.session_id, result: validScanResult });
       expect(fix.step).toBe("fix");
 
-      // Fix
-      const commit = pipelineStep({ session_id: start.session_id, result: validFixResult });
+      const commit = await svc.pipelineStep({ session_id: start.session_id, result: validFixResult });
       expect(commit.step).toBe("commit");
 
-      // Commit
-      const verify = pipelineStep({ session_id: start.session_id, result: validCommitResult });
+      const verify = await svc.pipelineStep({ session_id: start.session_id, result: validCommitResult });
       expect(verify.step).toBe("verify");
 
-      // Verify — passes
-      const report = pipelineStep({
+      const report = await svc.pipelineStep({
         session_id: start.session_id,
         result: { passed: true, issues: [], test_output: "42 passed", feedback: "" },
       });
       expect(report.step).toBe("report");
 
-      // Report
-      const pr = pipelineStep({
+      const pr = await svc.pipelineStep({
         session_id: start.session_id,
         result: { summary: "Fixed 1 vulnerability." },
       });
       expect(pr.step).toBe("pr");
 
-      // PR
-      const done = pipelineStep({
+      const done = await svc.pipelineStep({
         session_id: start.session_id,
         result: { pr_url: "https://github.com/acme/web-app/pull/42",
           pr_number: 42, branch: "fix/dobbe-security" },
@@ -85,16 +75,14 @@ describe("vuln-resolve retry loop (integration)", () => {
   });
 
   describe("retry path (verify fails, then passes)", () => {
-    it("loops back to fix when verify fails", () => {
-      const start = startResolvePipeline();
+    it("loops back to fix when verify fails", async () => {
+      const start = await startResolvePipeline();
 
-      // Get to verify
-      pipelineStep({ session_id: start.session_id, result: validScanResult });
-      pipelineStep({ session_id: start.session_id, result: validFixResult });
-      pipelineStep({ session_id: start.session_id, result: validCommitResult });
+      await svc.pipelineStep({ session_id: start.session_id, result: validScanResult });
+      await svc.pipelineStep({ session_id: start.session_id, result: validFixResult });
+      await svc.pipelineStep({ session_id: start.session_id, result: validCommitResult });
 
-      // Verify fails
-      const retry = pipelineStep({
+      const retry = await svc.pipelineStep({
         session_id: start.session_id,
         result: {
           passed: false,
@@ -105,25 +93,22 @@ describe("vuln-resolve retry loop (integration)", () => {
         },
       });
 
-      // Should loop back to fix with feedback
       expect(retry.step).toBe("fix");
       expect(retry.iteration).toBe(2);
       expect(retry.feedback).toContain("lodash upgrade broke");
 
-      // Check status
-      const status = pipelineStatus({ session_id: start.session_id });
+      const status = await svc.pipelineStatus({ session_id: start.session_id });
       expect(status.currentState).toBe("fix");
       expect(status.iteration).toBe(2);
     });
 
-    it("succeeds on second iteration", () => {
-      const start = startResolvePipeline();
+    it("succeeds on second iteration", async () => {
+      const start = await startResolvePipeline();
 
-      // First iteration: scan → fix → commit → verify(fail)
-      pipelineStep({ session_id: start.session_id, result: validScanResult });
-      pipelineStep({ session_id: start.session_id, result: validFixResult });
-      pipelineStep({ session_id: start.session_id, result: validCommitResult });
-      pipelineStep({
+      await svc.pipelineStep({ session_id: start.session_id, result: validScanResult });
+      await svc.pipelineStep({ session_id: start.session_id, result: validFixResult });
+      await svc.pipelineStep({ session_id: start.session_id, result: validCommitResult });
+      await svc.pipelineStep({
         session_id: start.session_id,
         result: {
           passed: false,
@@ -133,10 +118,9 @@ describe("vuln-resolve retry loop (integration)", () => {
         },
       });
 
-      // Second iteration: fix → commit → verify(pass)
-      pipelineStep({ session_id: start.session_id, result: validFixResult });
-      pipelineStep({ session_id: start.session_id, result: validCommitResult });
-      const report = pipelineStep({
+      await svc.pipelineStep({ session_id: start.session_id, result: validFixResult });
+      await svc.pipelineStep({ session_id: start.session_id, result: validCommitResult });
+      const report = await svc.pipelineStep({
         session_id: start.session_id,
         result: { passed: true, issues: [], test_output: "42 passed", feedback: "" },
       });
@@ -146,17 +130,16 @@ describe("vuln-resolve retry loop (integration)", () => {
   });
 
   describe("max iterations reached", () => {
-    it("transitions to failed after max iterations", () => {
-      const start = pipelineStart({
+    it("transitions to failed after max iterations", async () => {
+      const start = await svc.pipelineStart({
         command: "vuln-resolve",
         params: { repo: "acme/web-app", maxIterations: 2 },
       });
 
-      // First iteration
-      pipelineStep({ session_id: start.session_id, result: validScanResult });
-      pipelineStep({ session_id: start.session_id, result: validFixResult });
-      pipelineStep({ session_id: start.session_id, result: validCommitResult });
-      pipelineStep({
+      await svc.pipelineStep({ session_id: start.session_id, result: validScanResult });
+      await svc.pipelineStep({ session_id: start.session_id, result: validFixResult });
+      await svc.pipelineStep({ session_id: start.session_id, result: validCommitResult });
+      await svc.pipelineStep({
         session_id: start.session_id,
         result: {
           passed: false, issues: [], test_output: "FAIL",
@@ -164,12 +147,10 @@ describe("vuln-resolve retry loop (integration)", () => {
         },
       });
 
-      // Second iteration
-      pipelineStep({ session_id: start.session_id, result: validFixResult });
-      pipelineStep({ session_id: start.session_id, result: validCommitResult });
+      await svc.pipelineStep({ session_id: start.session_id, result: validFixResult });
+      await svc.pipelineStep({ session_id: start.session_id, result: validCommitResult });
 
-      // This verify fail should hit max iterations
-      const failed = pipelineStep({
+      const failed = await svc.pipelineStep({
         session_id: start.session_id,
         result: {
           passed: false, issues: [], test_output: "FAIL again",
@@ -184,14 +165,14 @@ describe("vuln-resolve retry loop (integration)", () => {
   });
 
   describe("feedback extraction", () => {
-    it("extracts feedback from verify result", () => {
-      const start = startResolvePipeline();
+    it("extracts feedback from verify result", async () => {
+      const start = await startResolvePipeline();
 
-      pipelineStep({ session_id: start.session_id, result: validScanResult });
-      pipelineStep({ session_id: start.session_id, result: validFixResult });
-      pipelineStep({ session_id: start.session_id, result: validCommitResult });
+      await svc.pipelineStep({ session_id: start.session_id, result: validScanResult });
+      await svc.pipelineStep({ session_id: start.session_id, result: validFixResult });
+      await svc.pipelineStep({ session_id: start.session_id, result: validCommitResult });
 
-      const retry = pipelineStep({
+      const retry = await svc.pipelineStep({
         session_id: start.session_id,
         result: {
           passed: false,
@@ -205,14 +186,14 @@ describe("vuln-resolve retry loop (integration)", () => {
       expect(retry.feedback).toContain("Module not found");
     });
 
-    it("handles missing feedback gracefully", () => {
-      const start = startResolvePipeline();
+    it("handles missing feedback gracefully", async () => {
+      const start = await startResolvePipeline();
 
-      pipelineStep({ session_id: start.session_id, result: validScanResult });
-      pipelineStep({ session_id: start.session_id, result: validFixResult });
-      pipelineStep({ session_id: start.session_id, result: validCommitResult });
+      await svc.pipelineStep({ session_id: start.session_id, result: validScanResult });
+      await svc.pipelineStep({ session_id: start.session_id, result: validFixResult });
+      await svc.pipelineStep({ session_id: start.session_id, result: validCommitResult });
 
-      const retry = pipelineStep({
+      const retry = await svc.pipelineStep({
         session_id: start.session_id,
         result: {
           passed: false,
@@ -222,39 +203,35 @@ describe("vuln-resolve retry loop (integration)", () => {
         },
       });
 
-      // Should still retry even without detailed feedback
       expect(retry.step).toBe("fix");
       expect(retry.iteration).toBe(2);
     });
   });
 
   describe("auto-outcome detection", () => {
-    it("auto-detects pass outcome from passed=true", () => {
-      const start = startResolvePipeline();
+    it("auto-detects pass outcome from passed=true", async () => {
+      const start = await startResolvePipeline();
 
-      pipelineStep({ session_id: start.session_id, result: validScanResult });
-      pipelineStep({ session_id: start.session_id, result: validFixResult });
-      pipelineStep({ session_id: start.session_id, result: validCommitResult });
+      await svc.pipelineStep({ session_id: start.session_id, result: validScanResult });
+      await svc.pipelineStep({ session_id: start.session_id, result: validFixResult });
+      await svc.pipelineStep({ session_id: start.session_id, result: validCommitResult });
 
-      // Don't pass explicit outcome — should auto-detect from passed=true
-      const report = pipelineStep({
+      const report = await svc.pipelineStep({
         session_id: start.session_id,
         result: { passed: true, issues: [], test_output: "ok", feedback: "" },
-        // No outcome specified
       });
 
       expect(report.step).toBe("report");
     });
 
-    it("auto-detects fail outcome from passed=false", () => {
-      const start = startResolvePipeline();
+    it("auto-detects fail outcome from passed=false", async () => {
+      const start = await startResolvePipeline();
 
-      pipelineStep({ session_id: start.session_id, result: validScanResult });
-      pipelineStep({ session_id: start.session_id, result: validFixResult });
-      pipelineStep({ session_id: start.session_id, result: validCommitResult });
+      await svc.pipelineStep({ session_id: start.session_id, result: validScanResult });
+      await svc.pipelineStep({ session_id: start.session_id, result: validFixResult });
+      await svc.pipelineStep({ session_id: start.session_id, result: validCommitResult });
 
-      // Don't pass explicit outcome — should auto-detect from passed=false
-      const retry = pipelineStep({
+      const retry = await svc.pipelineStep({
         session_id: start.session_id,
         result: {
           passed: false, issues: [], test_output: "FAIL", feedback: "broken",

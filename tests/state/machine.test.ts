@@ -6,7 +6,6 @@ import {
   schemaToHint,
   describeZodType,
   type PipelineDefinition,
-  type PipelineSession,
 } from "../../src/state/machine.js";
 
 // ─── Test fixtures ───
@@ -414,7 +413,7 @@ describe("StateMachine", () => {
         nested: z.object({ val: z.string() }),
       });
       const hint = schemaToHint(schema);
-      expect(hint).toEqual({ nested: "object" });
+      expect(hint).toEqual({ nested: "{ val: string }" });
     });
 
     it("handles arrays", () => {
@@ -422,7 +421,7 @@ describe("StateMachine", () => {
         items: z.array(z.string()),
       });
       const hint = schemaToHint(schema);
-      expect(hint).toEqual({ items: "array" });
+      expect(hint).toEqual({ items: "string[]" });
     });
 
     it("handles optional fields", () => {
@@ -456,12 +455,12 @@ describe("StateMachine", () => {
       expect(describeZodType(z.boolean())).toBe("boolean");
     });
 
-    it("describes array", () => {
-      expect(describeZodType(z.array(z.string()))).toBe("array");
+    it("describes array with element type", () => {
+      expect(describeZodType(z.array(z.string()))).toBe("string[]");
     });
 
-    it("describes object", () => {
-      expect(describeZodType(z.object({}))).toBe("object");
+    it("describes object with shape", () => {
+      expect(describeZodType(z.object({ x: z.number() }))).toBe("{ x: number }");
     });
 
     it("describes optional", () => {
@@ -470,6 +469,26 @@ describe("StateMachine", () => {
 
     it("describes enum", () => {
       expect(describeZodType(z.enum(["a", "b"]))).toBe("a | b");
+    });
+
+    it("describes nullable", () => {
+      expect(describeZodType(z.string().nullable())).toBe("string | null");
+    });
+
+    it("describes default", () => {
+      expect(describeZodType(z.string().default("hello"))).toBe("string");
+    });
+
+    it("describes literal", () => {
+      expect(describeZodType(z.literal("fixed"))).toBe('"fixed"');
+    });
+
+    it("describes union", () => {
+      expect(describeZodType(z.union([z.string(), z.number()]))).toBe("string | number");
+    });
+
+    it("describes record", () => {
+      expect(describeZodType(z.record(z.string()))).toBe("Record<string, unknown>");
     });
 
     it("returns unknown for unrecognized types", () => {

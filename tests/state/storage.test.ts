@@ -9,6 +9,7 @@ function createTestSession(overrides: Partial<PipelineSession> = {}): PipelineSe
   return {
     id: "test-session-1",
     pipeline: "vuln-scan",
+    command: "vuln-scan",
     currentState: "scan",
     iteration: 1,
     stepResults: {},
@@ -35,44 +36,44 @@ describe("SessionStorage", () => {
   });
 
   describe("save and load", () => {
-    it("saves and loads a session", () => {
+    it("saves and loads a session", async () => {
       const session = createTestSession();
-      storage.save(session);
+      await storage.save(session);
 
-      const loaded = storage.load("test-session-1");
+      const loaded = await storage.load("test-session-1");
       expect(loaded).not.toBeNull();
       expect(loaded!.id).toBe("test-session-1");
       expect(loaded!.pipeline).toBe("vuln-scan");
       expect(loaded!.params).toEqual({ repo: "acme/web" });
     });
 
-    it("returns null for missing session", () => {
-      expect(storage.load("nonexistent")).toBeNull();
+    it("returns null for missing session", async () => {
+      expect(await storage.load("nonexistent")).toBeNull();
     });
 
-    it("overwrites existing session on save", () => {
+    it("overwrites existing session on save", async () => {
       const session = createTestSession();
-      storage.save(session);
+      await storage.save(session);
 
       session.currentState = "report";
       session.iteration = 2;
-      storage.save(session);
+      await storage.save(session);
 
-      const loaded = storage.load("test-session-1");
+      const loaded = await storage.load("test-session-1");
       expect(loaded!.currentState).toBe("report");
       expect(loaded!.iteration).toBe(2);
     });
 
-    it("preserves all session fields", () => {
+    it("preserves all session fields", async () => {
       const session = createTestSession({
         iteration: 3,
         stepResults: { scan: { groups: [] } },
         feedback: ["error 1", "error 2"],
         done: true,
       });
-      storage.save(session);
+      await storage.save(session);
 
-      const loaded = storage.load("test-session-1");
+      const loaded = await storage.load("test-session-1");
       expect(loaded!.iteration).toBe(3);
       expect(loaded!.stepResults).toEqual({ scan: { groups: [] } });
       expect(loaded!.feedback).toEqual(["error 1", "error 2"]);
@@ -81,51 +82,51 @@ describe("SessionStorage", () => {
   });
 
   describe("delete", () => {
-    it("deletes an existing session", () => {
-      storage.save(createTestSession());
-      expect(storage.delete("test-session-1")).toBe(true);
-      expect(storage.load("test-session-1")).toBeNull();
+    it("deletes an existing session", async () => {
+      await storage.save(createTestSession());
+      expect(await storage.delete("test-session-1")).toBe(true);
+      expect(await storage.load("test-session-1")).toBeNull();
     });
 
-    it("returns false for missing session", () => {
-      expect(storage.delete("nonexistent")).toBe(false);
+    it("returns false for missing session", async () => {
+      expect(await storage.delete("nonexistent")).toBe(false);
     });
   });
 
   describe("list", () => {
-    it("returns empty array when no sessions", () => {
-      expect(storage.list()).toEqual([]);
+    it("returns empty array when no sessions", async () => {
+      expect(await storage.list()).toEqual([]);
     });
 
-    it("lists all session IDs", () => {
-      storage.save(createTestSession({ id: "sess-1" }));
-      storage.save(createTestSession({ id: "sess-2" }));
-      storage.save(createTestSession({ id: "sess-3" }));
+    it("lists all session IDs", async () => {
+      await storage.save(createTestSession({ id: "sess-1" }));
+      await storage.save(createTestSession({ id: "sess-2" }));
+      await storage.save(createTestSession({ id: "sess-3" }));
 
-      const ids = storage.list().sort();
+      const ids = (await storage.list()).sort();
       expect(ids).toEqual(["sess-1", "sess-2", "sess-3"]);
     });
   });
 
   describe("listByPipeline", () => {
-    it("filters sessions by pipeline name", () => {
-      storage.save(createTestSession({ id: "s1", pipeline: "vuln-scan" }));
-      storage.save(createTestSession({ id: "s2", pipeline: "vuln-resolve" }));
-      storage.save(createTestSession({ id: "s3", pipeline: "vuln-scan" }));
+    it("filters sessions by pipeline name", async () => {
+      await storage.save(createTestSession({ id: "s1", pipeline: "vuln-scan" }));
+      await storage.save(createTestSession({ id: "s2", pipeline: "vuln-resolve" }));
+      await storage.save(createTestSession({ id: "s3", pipeline: "vuln-scan" }));
 
-      const vulnScans = storage.listByPipeline("vuln-scan");
+      const vulnScans = await storage.listByPipeline("vuln-scan");
       expect(vulnScans).toHaveLength(2);
       expect(vulnScans.map((s) => s.id).sort()).toEqual(["s1", "s3"]);
     });
 
-    it("returns empty array when no matches", () => {
-      storage.save(createTestSession({ id: "s1", pipeline: "vuln-scan" }));
-      expect(storage.listByPipeline("review-digest")).toEqual([]);
+    it("returns empty array when no matches", async () => {
+      await storage.save(createTestSession({ id: "s1", pipeline: "vuln-scan" }));
+      expect(await storage.listByPipeline("review-digest")).toEqual([]);
     });
   });
 
   describe("cleanup", () => {
-    it("removes completed sessions older than maxAge", () => {
+    it("removes completed sessions older than maxAge", async () => {
       const old = createTestSession({
         id: "old",
         done: true,
@@ -142,20 +143,20 @@ describe("SessionStorage", () => {
         updatedAt: new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString(),
       });
 
-      storage.save(old);
-      storage.save(recent);
-      storage.save(inProgress);
+      await storage.save(old);
+      await storage.save(recent);
+      await storage.save(inProgress);
 
-      const removed = storage.cleanup(24 * 60 * 60 * 1000);
+      const removed = await storage.cleanup(24 * 60 * 60 * 1000);
       expect(removed).toBe(1);
-      expect(storage.load("old")).toBeNull();
-      expect(storage.load("recent")).not.toBeNull();
-      expect(storage.load("running")).not.toBeNull(); // Not done, so not cleaned
+      expect(await storage.load("old")).toBeNull();
+      expect(await storage.load("recent")).not.toBeNull();
+      expect(await storage.load("running")).not.toBeNull(); // Not done, so not cleaned
     });
 
-    it("returns 0 when nothing to clean", () => {
-      storage.save(createTestSession({ done: false }));
-      expect(storage.cleanup()).toBe(0);
+    it("returns 0 when nothing to clean", async () => {
+      await storage.save(createTestSession({ done: false }));
+      expect(await storage.cleanup()).toBe(0);
     });
   });
 });

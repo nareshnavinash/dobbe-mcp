@@ -1,6 +1,9 @@
-import * as fs from "node:fs";
+import * as fs from "node:fs/promises";
 import * as path from "node:path";
 import * as crypto from "node:crypto";
+import { CACHE_DIR } from "./paths.js";
+import { logger } from "./logger.js";
+import { atomicWriteFile, ensureDir } from "./fs.js";
 
 /**
  * File-based cache with TTL support.
@@ -14,12 +17,6 @@ interface CacheEntry {
   key: string;
 }
 
-const DOBBE_DIR = path.join(
-  process.env.HOME ?? process.env.USERPROFILE ?? ".",
-  ".dobbe",
-);
-const CACHE_DIR = path.join(DOBBE_DIR, "cache");
-
 const DEFAULT_TTL_MS = 4 * 60 * 60 * 1000; // 4 hours
 
 export class CacheManager {
@@ -32,48 +29,46 @@ export class CacheManager {
   /**
    * Ensure the cache directory exists.
    */
-  private ensureDir(): void {
-    if (!fs.existsSync(this.cacheDir)) {
-      fs.mkdirSync(this.cacheDir, { recursive: true });
-    }
+  private async ensureCacheDir(): Promise<void> {
+    await ensureDir(this.cacheDir);
   }
 
   /**
    * Generate a deterministic file path for a cache key.
    */
   private keyToPath(key: string): string {
-    const hash = crypto.createHash("sha256").update(key).digest("hex").slice(0, 16);
+    const hash = crypto.createHash("sha256").update(key).digest("hex").slice(0, 32);
     return path.join(this.cacheDir, `${hash}.json`);
   }
 
   /**
    * Get a cached value. Returns null if not found or expired.
    */
-  get(key: string): unknown | null {
+  async get(key: string): Promise<unknown | null> {
     const filePath = this.keyToPath(key);
-    if (!fs.existsSync(filePath)) {
+    try {
+      const raw = await fs.readFile(filePath, "utf-8");
+      const entry = JSON.parse(raw) as CacheEntry;
+
+      // Check TTL
+      const age = Date.now() - new Date(entry.createdAt).getTime();
+      if (age > entry.ttlMs) {
+        // Expired — delete and return null
+        await fs.unlink(filePath);
+        return null;
+      }
+
+      return entry.data;
+    } catch {
       return null;
     }
-
-    const raw = fs.readFileSync(filePath, "utf-8");
-    const entry = JSON.parse(raw) as CacheEntry;
-
-    // Check TTL
-    const age = Date.now() - new Date(entry.createdAt).getTime();
-    if (age > entry.ttlMs) {
-      // Expired — delete and return null
-      fs.unlinkSync(filePath);
-      return null;
-    }
-
-    return entry.data;
   }
 
   /**
    * Set a cached value with optional TTL.
    */
-  set(key: string, data: unknown, ttlMs: number = DEFAULT_TTL_MS): void {
-    this.ensureDir();
+  async set(key: string, data: unknown, ttlMs: number = DEFAULT_TTL_MS): Promise<void> {
+    await this.ensureCacheDir();
     const filePath = this.keyToPath(key);
     const entry: CacheEntry = {
       data,
@@ -81,42 +76,44 @@ export class CacheManager {
       ttlMs,
       key,
     };
-    fs.writeFileSync(filePath, JSON.stringify(entry, null, 2), "utf-8");
+    await atomicWriteFile(filePath, JSON.stringify(entry, null, 2));
   }
 
   /**
    * Delete a specific cache entry.
    */
-  delete(key: string): boolean {
+  async delete(key: string): Promise<boolean> {
     const filePath = this.keyToPath(key);
-    if (!fs.existsSync(filePath)) {
+    try {
+      await fs.unlink(filePath);
+      return true;
+    } catch {
       return false;
     }
-    fs.unlinkSync(filePath);
-    return true;
   }
 
   /**
    * Clear all expired entries.
    */
-  evict(): number {
-    this.ensureDir();
+  async evict(): Promise<number> {
+    await this.ensureCacheDir();
     let removed = 0;
-    const files = fs.readdirSync(this.cacheDir).filter((f) => f.endsWith(".json"));
+    const files = (await fs.readdir(this.cacheDir)).filter((f) => f.endsWith(".json"));
 
     for (const file of files) {
       const filePath = path.join(this.cacheDir, file);
       try {
-        const raw = fs.readFileSync(filePath, "utf-8");
+        const raw = await fs.readFile(filePath, "utf-8");
         const entry = JSON.parse(raw) as CacheEntry;
         const age = Date.now() - new Date(entry.createdAt).getTime();
         if (age > entry.ttlMs) {
-          fs.unlinkSync(filePath);
+          await fs.unlink(filePath);
           removed++;
         }
-      } catch {
+      } catch (e) {
         // Corrupt file — remove it
-        fs.unlinkSync(filePath);
+        logger.warn("Removing corrupt cache file", { file, error: (e as Error).message });
+        await fs.unlink(filePath).catch(() => {});
         removed++;
       }
     }
@@ -127,11 +124,11 @@ export class CacheManager {
   /**
    * Clear the entire cache.
    */
-  clear(): number {
-    this.ensureDir();
-    const files = fs.readdirSync(this.cacheDir).filter((f) => f.endsWith(".json"));
+  async clear(): Promise<number> {
+    await this.ensureCacheDir();
+    const files = (await fs.readdir(this.cacheDir)).filter((f) => f.endsWith(".json"));
     for (const file of files) {
-      fs.unlinkSync(path.join(this.cacheDir, file));
+      await fs.unlink(path.join(this.cacheDir, file));
     }
     return files.length;
   }
