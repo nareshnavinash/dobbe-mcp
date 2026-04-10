@@ -14,9 +14,9 @@ const CLAUDE_DIR = path.join(HOME, ".claude");
 // Resolve the skills directory relative to this file
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-// In dist/: dist/installer.js → project root is ../
+// In dist/: dist/src/installer.js → project root is ../../
 // In src/: src/installer.ts → project root is ../
-const PROJECT_ROOT = path.resolve(__dirname, "..");
+const PROJECT_ROOT = path.resolve(__dirname, "..", "..");
 const BUNDLED_SKILLS_DIR = path.join(PROJECT_ROOT, "skills");
 
 const MCP_SERVER_CONFIG = {
