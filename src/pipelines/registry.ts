@@ -12,6 +12,16 @@ import { createChangelogGenPipeline } from "./changelog-gen.js";
 import { createMigrationPlanPipeline } from "./migration-plan.js";
 import { createMetricsDoraPipeline, createMetricsVelocityPipeline } from "./metrics.js";
 import { createScanSecretsPipeline } from "./scan-secrets.js";
+import {
+  createReviewAsPmPipeline,
+  createReviewAsEngineerPipeline,
+  createReviewAsMarketingPipeline,
+  createReviewAsDesignerPipeline,
+  createReviewAsQaPipeline,
+  createReviewAsTestArchitectPipeline,
+  createReviewAsSalesPipeline,
+} from "./review-roles.js";
+import { createProjectReviewPipeline } from "./project-review.js";
 
 /**
  * Pipeline registry: maps command names to pipeline factory functions.
@@ -209,4 +219,25 @@ registerPipeline("scan-secrets", (params) =>
     path: params.path as string | undefined,
   }),
   repoParams,
+);
+
+// ─── Role-Based Review Pipelines ───
+
+registerPipeline("review-as-pm", () => createReviewAsPmPipeline());
+registerPipeline("review-as-engineer", () => createReviewAsEngineerPipeline());
+registerPipeline("review-as-marketing", () => createReviewAsMarketingPipeline());
+registerPipeline("review-as-designer", () => createReviewAsDesignerPipeline());
+registerPipeline("review-as-qa", () => createReviewAsQaPipeline());
+registerPipeline("review-as-test-architect", () => createReviewAsTestArchitectPipeline());
+registerPipeline("review-as-sales", () => createReviewAsSalesPipeline());
+
+const projectReviewParams = z.object({
+  roles: z.array(z.enum(["pm", "engineer", "designer", "qa", "test-architect", "marketing", "sales"])).optional(),
+});
+
+registerPipeline("project-review", (params) =>
+  createProjectReviewPipeline({
+    roles: params.roles as string[] | undefined,
+  }),
+  projectReviewParams,
 );

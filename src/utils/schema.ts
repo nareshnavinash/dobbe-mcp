@@ -396,6 +396,213 @@ export const SecretsResultSchema = z.object({
   summary: z.string(),
 });
 
+// ─── Role-Based Review Schemas ───
+
+// Shared discovery schema (all roles use this)
+
+export const DiscoveryQuestionSchema = z.object({
+  question: z.string().describe("The question asked"),
+  answer: z.string().describe("The user's answer"),
+});
+
+export const DiscoveryResultSchema = z.object({
+  role: z.string().describe("The review role perspective"),
+  codebase_summary: z.string().describe("Brief summary of project structure and purpose"),
+  questions_and_answers: z.array(DiscoveryQuestionSchema).min(1)
+    .describe("Questions asked to user and their responses"),
+  key_observations: z.array(z.string()).describe("Notable observations from codebase scan"),
+  focus_areas: z.array(z.string()).describe("Areas to focus on in analysis"),
+});
+
+// PM Analysis
+
+export const PmImprovementSchema = z.object({
+  area: z.string().describe("Product area"),
+  suggestion: z.string(),
+  impact: z.enum(["high", "medium", "low"]),
+  effort: z.enum(["high", "medium", "low"]),
+  rationale: z.string(),
+});
+
+export const PmAnalysisSchema = z.object({
+  improvements: z.array(PmImprovementSchema),
+  product_gaps: z.array(z.string()),
+  user_experience_concerns: z.array(z.string()),
+  summary: z.string().describe("Markdown summary of product review findings"),
+});
+
+// Engineer Analysis
+
+export const ArchitectureConcernSchema = z.object({
+  component: z.string(),
+  concern: z.string(),
+  severity: z.enum(["critical", "high", "medium", "low"]),
+  recommendation: z.string(),
+  affected_files: z.array(z.string()).optional(),
+});
+
+export const TechDebtItemSchema = z.object({
+  description: z.string(),
+  location: z.string(),
+  priority: z.enum(["high", "medium", "low"]),
+});
+
+export const EngineerAnalysisSchema = z.object({
+  architecture_concerns: z.array(ArchitectureConcernSchema),
+  scalability_issues: z.array(z.string()),
+  tech_debt: z.array(TechDebtItemSchema),
+  positive_patterns: z.array(z.string()),
+  summary: z.string().describe("Markdown summary of architecture review findings"),
+});
+
+// Marketing Analysis
+
+export const PromotionStrategySchema = z.object({
+  strategy: z.string(),
+  channel: z.string(),
+  target_audience: z.string(),
+  expected_impact: z.string(),
+});
+
+export const MarketingAnalysisSchema = z.object({
+  promotion_strategies: z.array(PromotionStrategySchema),
+  messaging_suggestions: z.array(z.string()),
+  positioning_analysis: z.string(),
+  content_opportunities: z.array(z.string()),
+  summary: z.string().describe("Markdown summary of marketing review findings"),
+});
+
+// Designer Analysis
+
+export const UxImprovementSchema = z.object({
+  area: z.string(),
+  current_issue: z.string(),
+  suggestion: z.string(),
+  impact: z.enum(["high", "medium", "low"]),
+  affected_files: z.array(z.string()).optional(),
+});
+
+export const AccessibilityIssueSchema = z.object({
+  issue: z.string(),
+  severity: z.enum(["critical", "high", "medium", "low"]),
+  recommendation: z.string(),
+});
+
+export const DesignerAnalysisSchema = z.object({
+  ux_improvements: z.array(UxImprovementSchema),
+  accessibility_issues: z.array(AccessibilityIssueSchema),
+  design_consistency_notes: z.array(z.string()),
+  summary: z.string().describe("Markdown summary of design review findings"),
+});
+
+// QA Analysis
+
+export const BugFindingSchema = z.object({
+  description: z.string(),
+  severity: z.enum(["critical", "high", "medium", "low"]),
+  reproduction_steps: z.string().optional(),
+  affected_file: z.string().optional(),
+});
+
+export const QaAnalysisSchema = z.object({
+  bugs_found: z.array(BugFindingSchema),
+  quality_risks: z.array(z.string()),
+  edge_cases: z.array(z.string()),
+  summary: z.string().describe("Markdown summary of QA review findings"),
+});
+
+// Test Architect (Staff SDET) Analysis
+
+export const TestStrategyAssessmentSchema = z.object({
+  current_approach: z.string(),
+  recommended_approach: z.string(),
+  gaps: z.array(z.string()),
+});
+
+export const AutomationFindingSchema = z.object({
+  area: z.string(),
+  framework: z.string(),
+  current_coverage: z.string(),
+  recommendation: z.string(),
+  priority: z.enum(["high", "medium", "low"]),
+});
+
+export const CiCdObservationSchema = z.object({
+  pipeline_stage: z.string(),
+  issue: z.string(),
+  recommendation: z.string(),
+});
+
+export const TestArchitectureConcernSchema = z.object({
+  concern: z.string(),
+  severity: z.enum(["critical", "high", "medium", "low"]),
+  affected_areas: z.array(z.string()),
+  suggestion: z.string(),
+});
+
+export const CoverageAnalysisSchema = z.object({
+  unit_coverage_assessment: z.string(),
+  integration_coverage_assessment: z.string(),
+  e2e_coverage_assessment: z.string(),
+  missing_test_types: z.array(z.string()),
+});
+
+export const FlakyTestRiskSchema = z.object({
+  area: z.string(),
+  symptom: z.string(),
+  root_cause: z.string(),
+  fix: z.string(),
+});
+
+export const TestArchitectAnalysisSchema = z.object({
+  test_strategy_assessment: TestStrategyAssessmentSchema,
+  automation_findings: z.array(AutomationFindingSchema),
+  ci_cd_observations: z.array(CiCdObservationSchema),
+  test_architecture_concerns: z.array(TestArchitectureConcernSchema),
+  coverage_analysis: CoverageAnalysisSchema,
+  flaky_test_risks: z.array(FlakyTestRiskSchema),
+  summary: z.string().describe("Markdown summary of test architecture review findings"),
+});
+
+// Sales Analysis
+
+export const DifferentiatorSchema = z.object({
+  feature: z.string(),
+  competitive_advantage: z.string(),
+  talking_point: z.string(),
+});
+
+export const CompetitorInsightSchema = z.object({
+  competitor: z.string(),
+  strength_vs_us: z.string(),
+  weakness_vs_us: z.string(),
+  opportunity: z.string(),
+});
+
+export const ObjectionHandlerSchema = z.object({
+  objection: z.string(),
+  response: z.string(),
+});
+
+export const SalesAnalysisSchema = z.object({
+  differentiators: z.array(DifferentiatorSchema),
+  competitor_insights: z.array(CompetitorInsightSchema),
+  objection_handlers: z.array(ObjectionHandlerSchema),
+  summary: z.string().describe("Markdown summary of sales review findings"),
+});
+
+// Master Project Review Summary
+
+export const ProjectReviewSummarySchema = z.object({
+  roles_completed: z.array(z.string()),
+  cross_cutting_themes: z.array(z.string()),
+  top_priorities: z.array(z.object({
+    priority: z.string(),
+    source_roles: z.array(z.string()),
+  })),
+  executive_summary: z.string().describe("Markdown executive summary across all role reviews"),
+});
+
 // ─── Generic Schemas ───
 
 export const AcknowledgeSchema = z.object({

@@ -3,7 +3,7 @@ import { createPipeline, listCommands } from "../../src/pipelines/registry.js";
 
 describe("Pipeline Registry", () => {
   describe("listCommands", () => {
-    it("includes all 13 registered pipelines", () => {
+    it("includes all 21 registered pipelines", () => {
       const commands = listCommands();
       expect(commands).toContain("vuln-scan");
       expect(commands).toContain("vuln-resolve");
@@ -18,7 +18,15 @@ describe("Pipeline Registry", () => {
       expect(commands).toContain("metrics-dora");
       expect(commands).toContain("metrics-velocity");
       expect(commands).toContain("scan-secrets");
-      expect(commands).toHaveLength(13);
+      expect(commands).toContain("review-as-pm");
+      expect(commands).toContain("review-as-engineer");
+      expect(commands).toContain("review-as-marketing");
+      expect(commands).toContain("review-as-designer");
+      expect(commands).toContain("review-as-qa");
+      expect(commands).toContain("review-as-test-architect");
+      expect(commands).toContain("review-as-sales");
+      expect(commands).toContain("project-review");
+      expect(commands).toHaveLength(21);
     });
   });
 
@@ -89,6 +97,54 @@ describe("Pipeline Registry", () => {
       expect(def.name).toBe("scan-secrets");
     });
 
+    // Role-based review pipelines
+    it("creates review-as-pm", () => {
+      const def = createPipeline("review-as-pm", {});
+      expect(def.name).toBe("review-as-pm");
+    });
+
+    it("creates review-as-engineer", () => {
+      const def = createPipeline("review-as-engineer", {});
+      expect(def.name).toBe("review-as-engineer");
+    });
+
+    it("creates review-as-marketing", () => {
+      const def = createPipeline("review-as-marketing", {});
+      expect(def.name).toBe("review-as-marketing");
+    });
+
+    it("creates review-as-designer", () => {
+      const def = createPipeline("review-as-designer", {});
+      expect(def.name).toBe("review-as-designer");
+    });
+
+    it("creates review-as-qa", () => {
+      const def = createPipeline("review-as-qa", {});
+      expect(def.name).toBe("review-as-qa");
+    });
+
+    it("creates review-as-test-architect", () => {
+      const def = createPipeline("review-as-test-architect", {});
+      expect(def.name).toBe("review-as-test-architect");
+    });
+
+    it("creates review-as-sales", () => {
+      const def = createPipeline("review-as-sales", {});
+      expect(def.name).toBe("review-as-sales");
+    });
+
+    it("creates project-review with default roles", () => {
+      const def = createPipeline("project-review", {});
+      expect(def.name).toBe("project-review");
+      expect(Object.keys(def.states)).toHaveLength(16);
+    });
+
+    it("creates project-review with custom roles", () => {
+      const def = createPipeline("project-review", { roles: ["pm", "qa"] });
+      expect(def.name).toBe("project-review");
+      expect(Object.keys(def.states)).toHaveLength(6);
+    });
+
     // Default params
     it("creates pipelines with minimal valid params", () => {
       for (const cmd of ["vuln-scan", "vuln-resolve", "review-digest", "review-post",
@@ -99,6 +155,12 @@ describe("Pipeline Registry", () => {
       expect(() => createPipeline("incident-triage", {})).not.toThrow();
       expect(() => createPipeline("changelog-gen", { repo: "acme/web" })).not.toThrow();
       expect(() => createPipeline("migration-plan", { repo: "acme/web" })).not.toThrow();
+      // Role-based reviews have no required params
+      for (const cmd of ["review-as-pm", "review-as-engineer", "review-as-marketing",
+        "review-as-designer", "review-as-qa", "review-as-test-architect", "review-as-sales",
+        "project-review"]) {
+        expect(() => createPipeline(cmd, {})).not.toThrow();
+      }
     });
 
     it("rejects pipelines with missing required params", () => {
