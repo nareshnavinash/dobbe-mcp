@@ -23,9 +23,10 @@ const BUNDLED_SKILLS_DIR = path.join(PROJECT_ROOT, "skills");
 const MCP_ENTRY_POINT = path.join(PROJECT_ROOT, "dist", "src", "index.js");
 
 function getMcpServerConfig(): { command: string; args: string[] } {
-  // Use node with the direct path to the entry point
+  // Use the absolute path to the current node binary (process.execPath)
+  // so Claude Code can start the server without depending on PATH/nvm.
   return {
-    command: "node",
+    command: process.execPath,
     args: [MCP_ENTRY_POINT],
   };
 }

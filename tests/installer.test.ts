@@ -67,7 +67,7 @@ describe("Installer", () => {
       expect(result.mcpConfigured).toBe(true);
       const settings = JSON.parse(fs.readFileSync(settingsPath, "utf-8"));
       expect(settings.mcpServers.dobbe).toBeDefined();
-      expect(settings.mcpServers.dobbe.command).toBe("node");
+      expect(settings.mcpServers.dobbe.command).toMatch(/node/); // absolute path to node
       expect(settings.mcpServers.dobbe.args).toHaveLength(1);
       expect(settings.mcpServers.dobbe.args[0]).toContain("index.js");
     });
@@ -97,7 +97,7 @@ describe("Installer", () => {
       await install({ quiet: true, claudeDir, skillsSource });
 
       const settings = JSON.parse(fs.readFileSync(settingsPath, "utf-8"));
-      expect(settings.mcpServers.dobbe.command).toBe("node"); // Updated
+      expect(settings.mcpServers.dobbe.command).toMatch(/node/); // Updated to absolute path
     });
 
     it("creates claude directory if missing", async () => {
