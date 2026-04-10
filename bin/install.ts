@@ -28,24 +28,30 @@ async function main(): Promise<void> {
       await uninstall({ quiet: true });
       await install();
       break;
-    default:
-      // If no command, start the MCP server (default behavior for npx)
-      if (!command || command === "start") {
-        const { createServer } = await import("../src/server.js");
-        const { StdioServerTransport } = await import(
-          "@modelcontextprotocol/sdk/server/stdio.js"
+    case "start": {
+      if (process.stdin.isTTY) {
+        process.stderr.write(
+          "dobbe MCP server running on stdio. Waiting for JSON-RPC messages...\n" +
+          "  (This is normally started by Claude Code, not run manually.)\n" +
+          "  Press Ctrl+C to stop.\n\n"
         );
-        const server = createServer();
-        const transport = new StdioServerTransport();
-        await server.connect(transport);
+      }
+      const { startServer } = await import("../src/index.js");
+      await startServer();
+      break;
+    }
+    default:
+      console.log("dobbe -- AI-powered MCP server for Claude Code\n");
+      console.log("Commands:");
+      console.log("  npx dobbe install     Install skills + configure MCP");
+      console.log("  npx dobbe uninstall   Remove skills + MCP config");
+      console.log("  npx dobbe update      Update skills to latest version");
+      console.log("  npx dobbe start       Start MCP server (used by Claude Code)");
+      if (!command || command === "help" || command === "--help") {
+        process.exit(0);
       } else {
-        console.log("dobbe -- AI-powered MCP server for Claude Code\n");
-        console.log("Commands:");
-        console.log("  npx dobbe install     Install skills + configure MCP");
-        console.log("  npx dobbe uninstall   Remove skills + MCP config");
-        console.log("  npx dobbe update      Update skills to latest version");
-        console.log("  npx dobbe             Start MCP server (used by Claude Code)");
-        process.exit(command === "help" || command === "--help" ? 0 : 1);
+        console.error(`\nUnknown command: ${command}`);
+        process.exit(1);
       }
   }
 }

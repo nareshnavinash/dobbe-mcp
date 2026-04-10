@@ -11,7 +11,7 @@ import { logger } from "./utils/logger.js";
  * Connects via stdio transport for Claude Code integration.
  */
 
-async function main(): Promise<void> {
+export async function startServer(): Promise<void> {
   // Clean up stale sessions and expired cache entries on startup
   const storage = new SessionStorage();
   const cache = new CacheManager();
@@ -39,6 +39,10 @@ async function main(): Promise<void> {
 
   await server.connect(transport);
   logger.info("dobbe MCP server started");
+}
+
+async function main(): Promise<void> {
+  await startServer();
 }
 
 main().catch((error) => {

@@ -8,6 +8,7 @@ describe("Installer", () => {
   let tmpDir: string;
   let claudeDir: string;
   let skillsDir: string;
+  let claudeConfigPath: string;
   let settingsPath: string;
 
   // Create a fake skills source that mimics the project's skills/ directory
@@ -17,6 +18,7 @@ describe("Installer", () => {
     tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "dobbe-installer-test-"));
     claudeDir = path.join(tmpDir, ".claude");
     skillsDir = path.join(claudeDir, "skills");
+    claudeConfigPath = path.join(tmpDir, ".claude.json");
     settingsPath = path.join(claudeDir, "settings.json");
 
     // Create fake bundled skills
@@ -48,6 +50,7 @@ describe("Installer", () => {
       const result = await install({
         quiet: true,
         claudeDir,
+        claudeConfigPath,
         skillsSource,
       });
 
@@ -57,52 +60,49 @@ describe("Installer", () => {
     });
 
     it("does not copy non-dobbe directories", async () => {
-      await install({ quiet: true, claudeDir, skillsSource });
+      await install({ quiet: true, claudeDir, claudeConfigPath, skillsSource });
       expect(fs.existsSync(path.join(skillsDir, "other-skill"))).toBe(false);
     });
 
-    it("configures MCP server in settings.json", async () => {
-      const result = await install({ quiet: true, claudeDir, skillsSource });
+    it("configures MCP server in ~/.claude.json", async () => {
+      const result = await install({ quiet: true, claudeDir, claudeConfigPath, skillsSource });
 
       expect(result.mcpConfigured).toBe(true);
-      const settings = JSON.parse(fs.readFileSync(settingsPath, "utf-8"));
-      expect(settings.mcpServers.dobbe).toBeDefined();
-      expect(settings.mcpServers.dobbe.command).toMatch(/node/); // absolute path to node
-      expect(settings.mcpServers.dobbe.args).toHaveLength(1);
-      expect(settings.mcpServers.dobbe.args[0]).toContain("index.js");
+      const config = JSON.parse(fs.readFileSync(claudeConfigPath, "utf-8"));
+      expect(config.mcpServers.dobbe).toBeDefined();
+      expect(config.mcpServers.dobbe.command).toBe("npx");
+      expect(config.mcpServers.dobbe.args).toEqual(["dobbe", "start"]);
     });
 
-    it("preserves existing settings.json content", async () => {
-      fs.mkdirSync(claudeDir, { recursive: true });
+    it("preserves existing ~/.claude.json content", async () => {
       fs.writeFileSync(
-        settingsPath,
+        claudeConfigPath,
         JSON.stringify({ existingKey: "value", mcpServers: { other: { command: "test" } } }),
       );
 
-      await install({ quiet: true, claudeDir, skillsSource });
+      await install({ quiet: true, claudeDir, claudeConfigPath, skillsSource });
 
-      const settings = JSON.parse(fs.readFileSync(settingsPath, "utf-8"));
-      expect(settings.existingKey).toBe("value");
-      expect(settings.mcpServers.other).toBeDefined();
-      expect(settings.mcpServers.dobbe).toBeDefined();
+      const config = JSON.parse(fs.readFileSync(claudeConfigPath, "utf-8"));
+      expect(config.existingKey).toBe("value");
+      expect(config.mcpServers.other).toBeDefined();
+      expect(config.mcpServers.dobbe).toBeDefined();
     });
 
     it("updates existing dobbe MCP config", async () => {
-      fs.mkdirSync(claudeDir, { recursive: true });
       fs.writeFileSync(
-        settingsPath,
+        claudeConfigPath,
         JSON.stringify({ mcpServers: { dobbe: { command: "old" } } }),
       );
 
-      await install({ quiet: true, claudeDir, skillsSource });
+      await install({ quiet: true, claudeDir, claudeConfigPath, skillsSource });
 
-      const settings = JSON.parse(fs.readFileSync(settingsPath, "utf-8"));
-      expect(settings.mcpServers.dobbe.command).toMatch(/node/); // Updated to absolute path
+      const config = JSON.parse(fs.readFileSync(claudeConfigPath, "utf-8"));
+      expect(config.mcpServers.dobbe.command).toBe("npx"); // Updated from old config
     });
 
     it("creates claude directory if missing", async () => {
       expect(fs.existsSync(claudeDir)).toBe(false);
-      await install({ quiet: true, claudeDir, skillsSource });
+      await install({ quiet: true, claudeDir, claudeConfigPath, skillsSource });
       expect(fs.existsSync(claudeDir)).toBe(true);
     });
 
@@ -110,6 +110,7 @@ describe("Installer", () => {
       const result = await install({
         quiet: true,
         claudeDir,
+        claudeConfigPath,
         skillsSource: path.join(tmpDir, "nonexistent"),
       });
       expect(result.skillsInstalled).toBe(0);
@@ -117,7 +118,7 @@ describe("Installer", () => {
 
     it("overwrites existing skills", async () => {
       // Install once
-      await install({ quiet: true, claudeDir, skillsSource });
+      await install({ quiet: true, claudeDir, claudeConfigPath, skillsSource });
 
       // Modify a skill
       fs.writeFileSync(
@@ -126,7 +127,7 @@ describe("Installer", () => {
       );
 
       // Install again
-      await install({ quiet: true, claudeDir, skillsSource });
+      await install({ quiet: true, claudeDir, claudeConfigPath, skillsSource });
 
       const content = fs.readFileSync(
         path.join(skillsDir, "dobbe-vuln-scan", "SKILL.md"),
@@ -134,12 +135,31 @@ describe("Installer", () => {
       );
       expect(content).toBe("# Updated content");
     });
+
+    it("cleans up stale MCP config from settings.json", async () => {
+      // Simulate legacy config in settings.json
+      fs.mkdirSync(claudeDir, { recursive: true });
+      fs.writeFileSync(
+        settingsPath,
+        JSON.stringify({ mcpServers: { dobbe: { command: "old" } }, other: true }),
+      );
+
+      await install({ quiet: true, claudeDir, claudeConfigPath, skillsSource });
+
+      // MCP config should be in ~/.claude.json, not settings.json
+      const config = JSON.parse(fs.readFileSync(claudeConfigPath, "utf-8"));
+      expect(config.mcpServers.dobbe).toBeDefined();
+
+      const settings = JSON.parse(fs.readFileSync(settingsPath, "utf-8"));
+      expect(settings.mcpServers.dobbe).toBeUndefined();
+      expect(settings.other).toBe(true); // other settings preserved
+    });
   });
 
   describe("uninstall", () => {
     it("removes dobbe skills", async () => {
-      await install({ quiet: true, claudeDir, skillsSource });
-      const result = await uninstall({ quiet: true, claudeDir });
+      await install({ quiet: true, claudeDir, claudeConfigPath, skillsSource });
+      const result = await uninstall({ quiet: true, claudeDir, claudeConfigPath });
 
       expect(result.skillsRemoved).toBe(2);
       expect(fs.existsSync(path.join(skillsDir, "dobbe-vuln-scan"))).toBe(false);
@@ -147,54 +167,52 @@ describe("Installer", () => {
     });
 
     it("does not remove non-dobbe skills", async () => {
-      await install({ quiet: true, claudeDir, skillsSource });
+      await install({ quiet: true, claudeDir, claudeConfigPath, skillsSource });
       // Manually add a non-dobbe skill
       fs.mkdirSync(path.join(skillsDir, "other-thing"), { recursive: true });
       fs.writeFileSync(path.join(skillsDir, "other-thing", "SKILL.md"), "keep me");
 
-      await uninstall({ quiet: true, claudeDir });
+      await uninstall({ quiet: true, claudeDir, claudeConfigPath });
 
       expect(fs.existsSync(path.join(skillsDir, "other-thing", "SKILL.md"))).toBe(true);
     });
 
-    it("removes MCP config from settings.json", async () => {
-      await install({ quiet: true, claudeDir, skillsSource });
-      const result = await uninstall({ quiet: true, claudeDir });
+    it("removes MCP config from ~/.claude.json", async () => {
+      await install({ quiet: true, claudeDir, claudeConfigPath, skillsSource });
+      const result = await uninstall({ quiet: true, claudeDir, claudeConfigPath });
 
       expect(result.mcpRemoved).toBe(true);
-      const settings = JSON.parse(fs.readFileSync(settingsPath, "utf-8"));
-      expect(settings.mcpServers.dobbe).toBeUndefined();
+      const config = JSON.parse(fs.readFileSync(claudeConfigPath, "utf-8"));
+      expect(config.mcpServers.dobbe).toBeUndefined();
     });
 
     it("preserves other MCP configs", async () => {
-      fs.mkdirSync(claudeDir, { recursive: true });
       fs.writeFileSync(
-        settingsPath,
+        claudeConfigPath,
         JSON.stringify({ mcpServers: { dobbe: { command: "npx" }, other: { command: "test" } } }),
       );
 
-      await uninstall({ quiet: true, claudeDir });
+      await uninstall({ quiet: true, claudeDir, claudeConfigPath });
 
-      const settings = JSON.parse(fs.readFileSync(settingsPath, "utf-8"));
-      expect(settings.mcpServers.other).toBeDefined();
-      expect(settings.mcpServers.dobbe).toBeUndefined();
+      const config = JSON.parse(fs.readFileSync(claudeConfigPath, "utf-8"));
+      expect(config.mcpServers.other).toBeDefined();
+      expect(config.mcpServers.dobbe).toBeUndefined();
     });
 
     it("handles missing skills directory", async () => {
-      const result = await uninstall({ quiet: true, claudeDir });
+      const result = await uninstall({ quiet: true, claudeDir, claudeConfigPath });
       expect(result.skillsRemoved).toBe(0);
     });
 
-    it("handles missing settings.json", async () => {
-      const result = await uninstall({ quiet: true, claudeDir });
+    it("handles missing ~/.claude.json", async () => {
+      const result = await uninstall({ quiet: true, claudeDir, claudeConfigPath });
       expect(result.mcpRemoved).toBe(false);
     });
 
-    it("handles corrupt settings.json", async () => {
-      fs.mkdirSync(claudeDir, { recursive: true });
-      fs.writeFileSync(settingsPath, "not json");
+    it("handles corrupt ~/.claude.json", async () => {
+      fs.writeFileSync(claudeConfigPath, "not json");
 
-      const result = await uninstall({ quiet: true, claudeDir });
+      const result = await uninstall({ quiet: true, claudeDir, claudeConfigPath });
       expect(result.mcpRemoved).toBe(false);
     });
   });

@@ -3,13 +3,15 @@ import * as path from "node:path";
 import { fileURLToPath } from "node:url";
 
 /**
- * Installer: copies skills to ~/.claude/skills/ and configures MCP in settings.json.
+ * Installer: copies skills to ~/.claude/skills/ and configures MCP in ~/.claude.json.
  */
 
 import { DOBBE_DIR } from "./utils/paths.js";
 
 const HOME = process.env.HOME ?? process.env.USERPROFILE ?? ".";
 const CLAUDE_DIR = path.join(HOME, ".claude");
+// MCP servers must be in ~/.claude.json (NOT ~/.claude/settings.json)
+const CLAUDE_CONFIG = path.join(HOME, ".claude.json");
 
 // Resolve the skills directory relative to this file
 const __filename = fileURLToPath(import.meta.url);
@@ -19,15 +21,16 @@ const __dirname = path.dirname(__filename);
 const PROJECT_ROOT = path.resolve(__dirname, "..", "..");
 const BUNDLED_SKILLS_DIR = path.join(PROJECT_ROOT, "skills");
 
-// Resolve the MCP server entry point to use node directly (faster, more reliable than npx)
-const MCP_ENTRY_POINT = path.join(PROJECT_ROOT, "dist", "src", "index.js");
-
 function getMcpServerConfig(): { command: string; args: string[] } {
-  // Use the absolute path to the current node binary (process.execPath)
-  // so Claude Code can start the server without depending on PATH/nvm.
+  // Use npx so the package is resolved at runtime from the user's PATH.
+  // This avoids hardcoding absolute paths to node or the package location,
+  // which break when the user switches Node versions (nvm/fnm) or when
+  // npx cleans its cache.
+  // The "start" subcommand explicitly starts the MCP stdio server,
+  // while bare "npx dobbe" now shows help text.
   return {
-    command: process.execPath,
-    args: [MCP_ENTRY_POINT],
+    command: "npx",
+    args: ["dobbe", "start"],
   };
 }
 
@@ -36,6 +39,7 @@ const SKILL_PREFIX = "dobbe-";
 export interface InstallOptions {
   quiet?: boolean;
   claudeDir?: string;
+  claudeConfigPath?: string;
   skillsSource?: string;
 }
 
@@ -58,7 +62,7 @@ export async function install(options: InstallOptions = {}): Promise<{
 }> {
   const claudeDir = options.claudeDir ?? CLAUDE_DIR;
   const skillsDir = path.join(claudeDir, "skills");
-  const settingsPath = path.join(claudeDir, "settings.json");
+  const claudeConfigPath = options.claudeConfigPath ?? CLAUDE_CONFIG;
   const skillsSource = options.skillsSource ?? BUNDLED_SKILLS_DIR;
   const log = options.quiet ? () => {} : console.log;
 
@@ -67,16 +71,19 @@ export async function install(options: InstallOptions = {}): Promise<{
   // 1. Copy skills
   const skillsInstalled = await copySkills(skillsSource, skillsDir, log);
 
-  // 2. Configure MCP server in settings.json
-  const mcpConfigured = await configureMcp(settingsPath, log);
+  // 2. Configure MCP server in ~/.claude.json (where Claude Code reads mcpServers)
+  const mcpConfigured = await configureMcp(claudeConfigPath, log);
 
   // 3. Create ~/.dobbe/ directory structure
   const configCreated = await ensureDobbe(log);
 
+  // 4. Clean up stale config from settings.json if present
+  await cleanupStaleMcpConfig(path.join(claudeDir, "settings.json"), log);
+
   log("\n✓ dobbe installed successfully!");
   log(`  ${skillsInstalled} skills installed to ${skillsDir}`);
   if (mcpConfigured) {
-    log(`  MCP server configured in ${settingsPath}`);
+    log(`  MCP server configured in ${claudeConfigPath}`);
   }
   log("\n  Restart Claude Code, then try /dobbe-vuln-scan");
 
@@ -91,7 +98,7 @@ export async function uninstall(
 ): Promise<{ skillsRemoved: number; mcpRemoved: boolean }> {
   const claudeDir = options.claudeDir ?? CLAUDE_DIR;
   const skillsDir = path.join(claudeDir, "skills");
-  const settingsPath = path.join(claudeDir, "settings.json");
+  const claudeConfigPath = options.claudeConfigPath ?? CLAUDE_CONFIG;
   const log = options.quiet ? () => {} : console.log;
 
   log("Uninstalling dobbe...\n");
@@ -99,8 +106,11 @@ export async function uninstall(
   // 1. Remove skills
   const skillsRemoved = await removeSkills(skillsDir, log);
 
-  // 2. Remove MCP config
-  const mcpRemoved = await removeMcp(settingsPath, log);
+  // 2. Remove MCP config from ~/.claude.json
+  const mcpRemoved = await removeMcp(claudeConfigPath, log);
+
+  // 3. Also clean up stale config from settings.json (legacy)
+  await cleanupStaleMcpConfig(path.join(claudeDir, "settings.json"), log);
 
   if (!options.quiet) {
     log("\n✓ dobbe uninstalled.");
@@ -182,53 +192,75 @@ async function removeSkills(
 }
 
 async function configureMcp(
-  settingsPath: string,
+  configPath: string,
   log: (...args: unknown[]) => void,
 ): Promise<boolean> {
-  let settings: Record<string, unknown> = {};
+  let config: Record<string, unknown> = {};
 
-  // Read existing settings
-  if (await fileExists(settingsPath)) {
+  // Read existing ~/.claude.json
+  if (await fileExists(configPath)) {
     try {
-      settings = JSON.parse(await fs.readFile(settingsPath, "utf-8"));
+      config = JSON.parse(await fs.readFile(configPath, "utf-8"));
     } catch {
-      log("  Warning: Could not parse existing settings.json");
+      log("  Warning: Could not parse existing", configPath);
     }
-  } else {
-    await fs.mkdir(path.dirname(settingsPath), { recursive: true });
   }
 
   // Add MCP server config
-  const mcpServers = (settings.mcpServers ?? {}) as Record<string, unknown>;
+  const mcpServers = (config.mcpServers ?? {}) as Record<string, unknown>;
 
   if (mcpServers.dobbe) {
     log("  MCP server 'dobbe' already configured, updating...");
   }
 
   mcpServers.dobbe = getMcpServerConfig();
-  settings.mcpServers = mcpServers;
+  config.mcpServers = mcpServers;
 
-  await fs.writeFile(settingsPath, JSON.stringify(settings, null, 2), "utf-8");
+  await fs.writeFile(configPath, JSON.stringify(config, null, 2), "utf-8");
   log("  ✓ MCP server configured");
 
   return true;
 }
 
-async function removeMcp(
+/**
+ * Remove stale dobbe MCP config from settings.json (legacy location).
+ */
+async function cleanupStaleMcpConfig(
   settingsPath: string,
   log: (...args: unknown[]) => void,
-): Promise<boolean> {
-  if (!(await fileExists(settingsPath))) return false;
+): Promise<void> {
+  if (!(await fileExists(settingsPath))) return;
 
   try {
     const settings = JSON.parse(await fs.readFile(settingsPath, "utf-8"));
     const mcpServers = settings.mcpServers as Record<string, unknown> | undefined;
 
+    if (mcpServers?.dobbe) {
+      delete mcpServers.dobbe;
+      settings.mcpServers = mcpServers;
+      await fs.writeFile(settingsPath, JSON.stringify(settings, null, 2), "utf-8");
+      log("  ✓ Removed stale MCP config from settings.json");
+    }
+  } catch {
+    // Non-critical — ignore
+  }
+}
+
+async function removeMcp(
+  configPath: string,
+  log: (...args: unknown[]) => void,
+): Promise<boolean> {
+  if (!(await fileExists(configPath))) return false;
+
+  try {
+    const config = JSON.parse(await fs.readFile(configPath, "utf-8"));
+    const mcpServers = config.mcpServers as Record<string, unknown> | undefined;
+
     if (!mcpServers?.dobbe) return false;
 
     delete mcpServers.dobbe;
-    settings.mcpServers = mcpServers;
-    await fs.writeFile(settingsPath, JSON.stringify(settings, null, 2), "utf-8");
+    config.mcpServers = mcpServers;
+    await fs.writeFile(configPath, JSON.stringify(config, null, 2), "utf-8");
     log("  ✗ MCP server config removed");
     return true;
   } catch {
