@@ -1,6 +1,6 @@
-# Source and config
-src/
-tests/
+# Source and config (anchored to root so dist/src/ is not excluded)
+/src/
+/tests/
 coverage/
 .github/
 docs/
