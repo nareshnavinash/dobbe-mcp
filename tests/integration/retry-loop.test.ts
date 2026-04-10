@@ -186,6 +186,51 @@ describe("vuln-resolve retry loop (integration)", () => {
       expect(retry.feedback).toContain("Module not found");
     });
 
+    it("includes errors field in feedback", async () => {
+      const start = await startResolvePipeline();
+
+      await svc.pipelineStep({ session_id: start.session_id, result: validScanResult });
+      await svc.pipelineStep({ session_id: start.session_id, result: validFixResult });
+      await svc.pipelineStep({ session_id: start.session_id, result: validCommitResult });
+
+      const retry = await svc.pipelineStep({
+        session_id: start.session_id,
+        result: {
+          passed: false,
+          issues: [],
+          test_output: "",
+          feedback: "",
+          errors: "TypeError: Cannot read properties of undefined (reading 'map')",
+        },
+      });
+
+      expect(retry.feedback).toContain("Errors:");
+      expect(retry.feedback).toContain("TypeError");
+    });
+
+    it("truncates long test_output in feedback", async () => {
+      const start = await startResolvePipeline();
+
+      await svc.pipelineStep({ session_id: start.session_id, result: validScanResult });
+      await svc.pipelineStep({ session_id: start.session_id, result: validFixResult });
+      await svc.pipelineStep({ session_id: start.session_id, result: validCommitResult });
+
+      const longOutput = "FAIL ".repeat(500); // >2000 chars
+
+      const retry = await svc.pipelineStep({
+        session_id: start.session_id,
+        result: {
+          passed: false,
+          issues: [],
+          test_output: longOutput,
+          feedback: "Tests are failing",
+        },
+      });
+
+      expect(retry.feedback).toContain("(truncated)");
+      expect(retry.feedback).toContain("Tests are failing");
+    });
+
     it("handles missing feedback gracefully", async () => {
       const start = await startResolvePipeline();
 

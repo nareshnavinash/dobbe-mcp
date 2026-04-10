@@ -100,4 +100,33 @@ describe("pipeline recovery (integration)", () => {
     expect(status.currentState).toBe("commit");
     expect(status.iteration).toBe(1);
   });
+
+  it("throws PIPELINE_NOT_REGISTERED when session lacks command/params", async () => {
+    const storage = new SessionStorage(tmpDir);
+
+    // Manually write a session file with no command/params
+    const sessionId = "orphan-session-id";
+    const orphanSession = {
+      id: sessionId,
+      pipeline: "nonexistent-pipeline-xyz",
+      command: "",
+      currentState: "scan",
+      iteration: 1,
+      stepResults: {},
+      feedback: [],
+      params: {},
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      done: false,
+    };
+    // Write directly to storage directory
+    const filePath = path.join(tmpDir, `${sessionId}.json`);
+    fs.writeFileSync(filePath, JSON.stringify(orphanSession));
+
+    const svc = new PipelineService(storage);
+
+    await expect(
+      svc.pipelineStatus({ session_id: sessionId }),
+    ).rejects.toThrow(/not registered/);
+  });
 });

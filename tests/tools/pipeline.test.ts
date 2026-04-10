@@ -276,4 +276,43 @@ describe("Pipeline tool handlers", () => {
       expect(status.done).toBe(true);
     });
   });
+
+  describe("pipelineListSessions", () => {
+    it("lists active sessions", async () => {
+      await svc.pipelineStart({
+        command: "vuln-scan",
+        params: { repo: "acme/web-app" },
+      });
+
+      const result = await svc.pipelineListSessions();
+      expect(result.sessions.length).toBeGreaterThanOrEqual(1);
+      const match = result.sessions.find(s => s.pipeline.includes("vuln-scan"));
+      expect(match).toBeDefined();
+    });
+  });
+
+  describe("pipelineAbort", () => {
+    it("aborts an in-progress pipeline", async () => {
+      const start = await svc.pipelineStart({
+        command: "vuln-scan",
+        params: { repo: "acme/web-app" },
+      });
+
+      const result = await svc.pipelineAbort({ session_id: start.session_id });
+      expect(result.aborted).toBe(true);
+      expect(result.message).toContain("aborted");
+    });
+
+    it("returns aborted=false for already-completed pipeline", async () => {
+      const start = await svc.pipelineStart({
+        command: "vuln-scan",
+        params: { repo: "acme/web-app" },
+      });
+
+      await svc.pipelineComplete({ session_id: start.session_id });
+      const result = await svc.pipelineAbort({ session_id: start.session_id });
+      expect(result.aborted).toBe(false);
+      expect(result.message).toContain("already completed");
+    });
+  });
 });

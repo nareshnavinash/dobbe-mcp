@@ -1,4 +1,4 @@
-import { createRequire } from "node:module";
+import { readFileSync } from "node:fs";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 import { PipelineService } from "./tools/pipeline.js";
@@ -6,8 +6,15 @@ import { configRead, configWrite } from "./tools/config.js";
 import { cacheGet, cacheSet } from "./tools/cache.js";
 import { sessionLoad, sessionSave } from "./tools/session.js";
 
-const require = createRequire(import.meta.url);
-const { version } = require("../package.json") as { version: string };
+// Resolve package.json from both source (src/) and compiled (dist/src/) layouts
+const version: string = (() => {
+  for (const rel of ["../package.json", "../../package.json"]) {
+    try {
+      return JSON.parse(readFileSync(new URL(rel, import.meta.url), "utf-8")).version;
+    } catch { /* try next depth */ }
+  }
+  return "0.0.0";
+})();
 
 /**
  * Create and configure the dobbe MCP server with all tool registrations.
