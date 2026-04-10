@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+  <!-- Clean bold "d" lettermark: stem + bowl as one continuous path -->
+  <path d="M 42 10 V 50 A 16 16 0 1 1 42 22"
+        fill="none" stroke="#58a6ff" stroke-width="8"
+        stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

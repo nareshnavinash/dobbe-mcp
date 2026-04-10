@@ -8,152 +8,353 @@
   <meta property="og:title" content="dobbe -- DevOps autopilot for Claude Code">
   <meta property="og:description" content="16 commands. Zero config. Deterministic retry loops. The DevOps toolkit for Claude Code.">
   <meta property="og:type" content="website">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cpath d='M42 10V50A16 16 0 1 1 42 22' fill='none' stroke='%2358a6ff' stroke-width='8' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
   <style>
     :root {
       --bg: #0d1117;
-      --surface: #161b22;
+      --surface-0: #0d1117;
+      --surface-1: #161b22;
+      --surface-2: #1c2129;
       --border: #30363d;
       --text: #e6edf3;
       --text-muted: #8b949e;
       --accent: #58a6ff;
       --accent-hover: #79c0ff;
       --green: #3fb950;
+      --red: #f85149;
+      --orange: #d29922;
       --purple: #bc8cff;
+      --cyan: #39d2c0;
+      --pink: #f778ba;
     }
     * { margin: 0; padding: 0; box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    ::selection { background: var(--accent); color: var(--bg); }
     body {
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
       background: var(--bg);
       color: var(--text);
       line-height: 1.6;
+      overflow-x: hidden;
     }
     a { color: var(--accent); text-decoration: none; }
     a:hover { color: var(--accent-hover); }
 
-    /* Hero */
+    /* Section title underline */
+    .section-title { position: relative; display: inline-block; }
+    .section-title::after {
+      content: '';
+      display: block;
+      width: 48px;
+      height: 3px;
+      background: var(--accent);
+      margin: 12px auto 0;
+      border-radius: 2px;
+    }
+
+    /* Scroll reveal */
+    .reveal {
+      opacity: 0;
+      transform: translateY(24px);
+      transition: opacity 0.6s ease, transform 0.6s ease;
+    }
+    .reveal.visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    /* Nav */
+    nav {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      background: rgba(13, 17, 23, 0.8);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border-bottom: 1px solid var(--border);
+      padding: 12px 24px;
+    }
+    .nav-inner {
+      max-width: 1000px;
+      margin: 0 auto;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .nav-brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .nav-brand svg { width: 28px; height: 28px; }
+    .nav-logo {
+      font-size: 1.15rem;
+      font-weight: 800;
+      color: var(--text);
+      letter-spacing: -0.02em;
+    }
+    .nav-links { display: flex; align-items: center; gap: 24px; }
+    .nav-links a { color: var(--text-muted); font-size: 0.9rem; transition: color 0.2s; }
+    .nav-links a:hover { color: var(--text); }
+    .nav-install {
+      background: var(--accent);
+      color: var(--bg) !important;
+      padding: 6px 16px;
+      border-radius: 6px;
+      font-weight: 600;
+      font-size: 0.85rem;
+      transition: background 0.2s;
+    }
+    .nav-install:hover { background: var(--accent-hover); }
+
+    /* ==================== HERO ==================== */
     .hero {
       text-align: center;
-      padding: 80px 20px 60px;
-      max-width: 800px;
+      padding: 100px 20px 40px;
+      max-width: 900px;
       margin: 0 auto;
+      position: relative;
     }
+    .hero-glow {
+      position: absolute;
+      inset: -100px;
+      background:
+        radial-gradient(ellipse at 30% 20%, rgba(88,166,255,0.07), transparent 50%),
+        radial-gradient(ellipse at 70% 30%, rgba(188,140,255,0.05), transparent 50%);
+      background-size: 200% 100%;
+      animation: heroGlow 8s ease-in-out infinite;
+      pointer-events: none;
+      z-index: -1;
+    }
+    @keyframes heroGlow {
+      0%, 100% { background-position: 0% 50%; }
+      50% { background-position: 100% 50%; }
+    }
+    .hero-logo { margin-bottom: 20px; }
+    .hero-logo svg { width: 80px; height: 80px; }
     .hero h1 {
-      font-size: 3.5rem;
+      font-size: 4rem;
       font-weight: 800;
-      letter-spacing: -0.03em;
+      letter-spacing: -0.04em;
       margin-bottom: 16px;
+      background: linear-gradient(135deg, #e6edf3 30%, #58a6ff 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
     }
     .hero .tagline {
-      font-size: 1.25rem;
+      font-size: 1.2rem;
       color: var(--text-muted);
       margin-bottom: 32px;
-      max-width: 600px;
+      max-width: 550px;
       margin-left: auto;
       margin-right: auto;
     }
     .hero .install-box {
-      background: var(--surface);
+      background: var(--surface-1);
       border: 1px solid var(--border);
       border-radius: 8px;
-      padding: 16px 24px;
+      padding: 14px 28px;
       font-family: "SFMono-Regular", Consolas, monospace;
-      font-size: 1.1rem;
+      font-size: 1.05rem;
       display: inline-block;
-      margin-bottom: 24px;
+      margin-bottom: 10px;
       cursor: pointer;
-      transition: border-color 0.2s;
+      transition: border-color 0.2s, box-shadow 0.2s;
     }
-    .hero .install-box:hover { border-color: var(--accent); }
+    .hero .install-box:hover {
+      border-color: var(--accent);
+      box-shadow: 0 0 20px rgba(88,166,255,0.1);
+    }
     .hero .install-box .prefix { color: var(--text-muted); }
-    .hero .cta {
+    .hero .install-hint { font-size: 0.8rem; color: var(--text-muted); margin-bottom: 20px; }
+    .hero .cta-row { display: flex; justify-content: center; gap: 12px; flex-wrap: wrap; }
+    .cta {
       display: inline-block;
-      background: var(--accent);
-      color: var(--bg);
-      padding: 12px 32px;
+      padding: 10px 28px;
       border-radius: 6px;
       font-weight: 600;
-      font-size: 1rem;
-      transition: background 0.2s;
+      font-size: 0.95rem;
+      transition: all 0.2s;
     }
-    .hero .cta:hover { background: var(--accent-hover); color: var(--bg); }
+    .cta-primary { background: var(--accent); color: var(--bg); }
+    .cta-primary:hover { background: var(--accent-hover); color: var(--bg); box-shadow: 0 4px 16px rgba(88,166,255,0.3); }
+    .cta-secondary { background: transparent; color: var(--text); border: 1px solid var(--border); }
+    .cta-secondary:hover { border-color: var(--accent); color: var(--accent); }
 
-    /* Stats */
-    .stats {
+    /* Pipeline SVG (inside hero) */
+    .hero-pipeline {
+      margin: 48px auto 0;
+      max-width: 780px;
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+    }
+    .hero-pipeline svg { display: block; margin: 0 auto; }
+    .hero-pipeline-caption {
+      text-align: center;
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      margin-top: 16px;
+    }
+    @keyframes retryPulse {
+      0%, 100% { opacity: 0.4; }
+      50% { opacity: 1; }
+    }
+
+    /* ==================== BEFORE/AFTER ==================== */
+    .value-section {
+      max-width: 1000px;
+      margin: 0 auto;
+      padding: 80px 20px;
+    }
+    .value-section h2 {
+      text-align: center;
+      font-size: 1.75rem;
+      margin-bottom: 40px;
+    }
+    .compare-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 24px;
+      margin-bottom: 40px;
+    }
+    .compare-panel {
+      background: var(--surface-1);
+      border-radius: 10px;
+      overflow: hidden;
+      border: 1px solid var(--border);
+    }
+    .compare-header {
+      padding: 12px 16px;
+      font-weight: 600;
+      font-size: 0.9rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .compare-old .compare-header { background: rgba(248,81,73,0.08); border-bottom: 1px solid rgba(248,81,73,0.2); color: var(--red); }
+    .compare-new .compare-header { background: rgba(63,185,80,0.08); border-bottom: 1px solid rgba(63,185,80,0.2); color: var(--green); }
+    .compare-time { font-size: 0.8rem; opacity: 0.8; }
+    .compare-body {
+      padding: 16px;
+      font-family: "SFMono-Regular", Consolas, monospace;
+      font-size: 0.78rem;
+      line-height: 1.9;
+      color: var(--text-muted);
+      min-height: 280px;
+    }
+    .compare-body .cmd { color: var(--text); }
+    .compare-body .comment { color: #484f58; }
+    .step-label { font-weight: 600; }
+    .step-scan { color: var(--accent); }
+    .step-fix { color: var(--orange); }
+    .step-fail { color: var(--red); }
+    .step-retry { color: var(--purple); }
+    .step-pass { color: var(--green); }
+    .step-pr { color: var(--pink); }
+
+    /* Stats row (inside value section) */
+    .stats-row {
       display: flex;
       justify-content: center;
       gap: 48px;
-      padding: 40px 20px;
-      border-top: 1px solid var(--border);
-      border-bottom: 1px solid var(--border);
-      max-width: 700px;
-      margin: 0 auto;
+      flex-wrap: wrap;
     }
     .stat { text-align: center; }
-    .stat .number { font-size: 2rem; font-weight: 700; color: var(--green); }
-    .stat .label { font-size: 0.85rem; color: var(--text-muted); }
-
-    /* Features */
-    .features {
-      max-width: 900px;
-      margin: 0 auto;
-      padding: 60px 20px;
-    }
-    .features h2 {
-      text-align: center;
+    .stat .number {
       font-size: 2rem;
+      font-weight: 700;
+      color: var(--green);
+      font-family: "SFMono-Regular", Consolas, monospace;
+    }
+    .stat .label { font-size: 0.82rem; color: var(--text-muted); }
+
+    /* ==================== FEATURES ==================== */
+    .features-section {
+      max-width: 1000px;
+      margin: 0 auto;
+      padding: 80px 20px;
+    }
+    .features-section h2 {
+      text-align: center;
+      font-size: 1.75rem;
       margin-bottom: 40px;
     }
     .feature-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-      gap: 24px;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 20px;
     }
     .feature-card {
-      background: var(--surface);
+      background: var(--surface-1);
       border: 1px solid var(--border);
-      border-radius: 8px;
-      padding: 24px;
+      border-radius: 0 0 8px 8px;
+      padding: 24px 20px;
+      border-top: 3px solid var(--border);
+      transition: transform 0.3s ease, box-shadow 0.3s ease;
+    }
+    .feature-card:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 8px 25px rgba(0,0,0,0.4);
+    }
+    .feature-icon {
+      width: 36px;
+      height: 36px;
+      margin-bottom: 12px;
+    }
+    .feature-card .cmd-line {
+      font-family: "SFMono-Regular", Consolas, monospace;
+      font-size: 0.8rem;
+      color: var(--purple);
+      margin-bottom: 10px;
     }
     .feature-card h3 {
-      font-size: 1.1rem;
-      margin-bottom: 8px;
+      font-size: 1rem;
+      margin-bottom: 6px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
     }
-    .feature-card p {
-      color: var(--text-muted);
-      font-size: 0.9rem;
-    }
-    .feature-card .cmd {
-      font-family: monospace;
+    .feature-card p { color: var(--text-muted); font-size: 0.85rem; line-height: 1.5; }
+    .retry-badge {
+      font-size: 0.65rem;
+      background: rgba(188,140,255,0.15);
       color: var(--purple);
-      font-size: 0.85rem;
-      margin-top: 12px;
+      padding: 2px 8px;
+      border-radius: 10px;
+      font-weight: 600;
+      white-space: nowrap;
     }
+    .card-vuln { border-top-color: var(--red); }
+    .card-review { border-top-color: var(--accent); }
+    .card-test { border-top-color: var(--green); }
+    .card-dora { border-top-color: var(--cyan); }
+    .card-incident { border-top-color: var(--orange); }
+    .card-audit { border-top-color: var(--pink); }
 
-    /* How it works */
-    .how-it-works {
-      max-width: 700px;
+    /* ==================== HOW IT WORKS + TERMINAL ==================== */
+    .how-section {
+      max-width: 1000px;
       margin: 0 auto;
-      padding: 60px 20px;
+      padding: 80px 20px;
     }
-    .how-it-works h2 {
+    .how-section h2 {
       text-align: center;
-      font-size: 2rem;
+      font-size: 1.75rem;
       margin-bottom: 40px;
     }
-    .steps {
-      display: flex;
-      flex-direction: column;
-      gap: 24px;
+    .how-grid {
+      display: grid;
+      grid-template-columns: 1fr 1.5fr;
+      gap: 40px;
+      align-items: start;
     }
-    .step {
-      display: flex;
-      gap: 20px;
-      align-items: flex-start;
-    }
-    .step-number {
+    .steps { display: flex; flex-direction: column; gap: 28px; }
+    .step { display: flex; gap: 16px; align-items: flex-start; }
+    .step-num {
       flex-shrink: 0;
-      width: 40px;
-      height: 40px;
+      width: 36px;
+      height: 36px;
       background: var(--accent);
       color: var(--bg);
       border-radius: 50%;
@@ -161,137 +362,558 @@
       align-items: center;
       justify-content: center;
       font-weight: 700;
-      font-size: 1.1rem;
+      font-size: 0.95rem;
     }
-    .step-content h3 { font-size: 1rem; margin-bottom: 4px; }
-    .step-content p { color: var(--text-muted); font-size: 0.9rem; }
-    .step-content code {
-      background: var(--surface);
-      padding: 2px 6px;
-      border-radius: 4px;
-      font-size: 0.85rem;
+    .step-text h3 { font-size: 0.95rem; margin-bottom: 4px; }
+    .step-text p { color: var(--text-muted); font-size: 0.85rem; }
+    .step-text code {
+      background: var(--surface-1);
+      padding: 1px 5px;
+      border-radius: 3px;
+      font-size: 0.82rem;
     }
 
-    /* Footer */
+    /* Terminal */
+    .terminal {
+      background: var(--surface-0);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      overflow: hidden;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+    }
+    .terminal-bar {
+      background: var(--surface-1);
+      padding: 10px 14px;
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      border-bottom: 1px solid var(--border);
+    }
+    .terminal-dot { width: 11px; height: 11px; border-radius: 50%; }
+    .dot-r { background: #ff5f57; }
+    .dot-y { background: #febc2e; }
+    .dot-g { background: #28c840; }
+    .terminal-title {
+      flex: 1;
+      text-align: center;
+      font-size: 0.78rem;
+      color: var(--text-muted);
+      font-family: "SFMono-Regular", Consolas, monospace;
+    }
+    .terminal-body {
+      padding: 16px;
+      font-family: "SFMono-Regular", Consolas, monospace;
+      font-size: 0.78rem;
+      line-height: 1.9;
+      overflow-x: auto;
+    }
+    .terminal-line {
+      opacity: 0;
+      transition: opacity 0.3s ease;
+    }
+    .terminal-line.typed { opacity: 1; }
+    .t-out { color: var(--green); }
+    .t-in { color: var(--accent); }
+    .t-comment { color: #484f58; }
+    .t-str { color: #a5d6ff; }
+    .t-key { color: var(--purple); }
+    .t-val { color: var(--orange); }
+
+    /* ==================== ECOSYSTEM + CREDIBILITY ==================== */
+    .eco-section {
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 80px 20px;
+      text-align: center;
+    }
+    .eco-section h2 {
+      font-size: 1.75rem;
+      margin-bottom: 32px;
+    }
+    .eco-badges {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 10px;
+      margin-bottom: 20px;
+    }
+    .eco-badge {
+      background: var(--surface-1);
+      border: 1px solid var(--border);
+      padding: 6px 16px;
+      border-radius: 20px;
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      transition: all 0.2s;
+    }
+    .eco-badge:hover { border-color: var(--accent); color: var(--accent); box-shadow: 0 0 12px rgba(88,166,255,0.1); }
+    .eco-note {
+      font-size: 0.82rem;
+      color: var(--text-muted);
+      margin-bottom: 40px;
+    }
+    .cred-line {
+      font-family: "SFMono-Regular", Consolas, monospace;
+      font-size: 1.1rem;
+      color: var(--text);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 20px;
+      flex-wrap: wrap;
+    }
+    .cred-line .cred-val { color: var(--green); font-weight: 700; }
+    .cred-line .cred-sep { color: var(--border); font-weight: 300; }
+
+    /* ==================== BOTTOM CTA ==================== */
+    .bottom-cta {
+      text-align: center;
+      padding: 80px 20px;
+      position: relative;
+      max-width: 600px;
+      margin: 0 auto;
+    }
+    .bottom-cta::before {
+      content: '';
+      position: absolute;
+      top: -60px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 500px;
+      height: 200px;
+      background: radial-gradient(ellipse, rgba(88,166,255,0.06), transparent);
+      pointer-events: none;
+    }
+    .bottom-cta h2 { font-size: 1.75rem; margin-bottom: 12px; }
+    .bottom-cta .sub { color: var(--text-muted); margin-bottom: 28px; font-size: 0.95rem; }
+    .bottom-cta .install-box {
+      background: var(--surface-1);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 14px 28px;
+      font-family: "SFMono-Regular", Consolas, monospace;
+      font-size: 1.05rem;
+      display: inline-block;
+      margin-bottom: 20px;
+      cursor: pointer;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+    .bottom-cta .install-box:hover { border-color: var(--accent); box-shadow: 0 0 20px rgba(88,166,255,0.1); }
+    .bottom-cta .install-box .prefix { color: var(--text-muted); }
+
+    /* ==================== FOOTER ==================== */
     footer {
       text-align: center;
-      padding: 40px 20px;
+      padding: 32px 20px;
       border-top: 1px solid var(--border);
       color: var(--text-muted);
-      font-size: 0.85rem;
+      font-size: 0.82rem;
     }
     footer a { color: var(--text-muted); }
     footer a:hover { color: var(--accent); }
+    .footer-links { display: flex; justify-content: center; gap: 16px; flex-wrap: wrap; margin-bottom: 10px; }
+    .footer-sep { color: var(--border); }
 
-    @media (max-width: 600px) {
-      .hero h1 { font-size: 2.5rem; }
-      .stats { flex-direction: column; gap: 24px; }
+    /* ==================== RESPONSIVE ==================== */
+    @media (max-width: 768px) {
+      .hero h1 { font-size: 2.8rem; }
+      .hero { padding-top: 80px; }
+      .compare-grid { grid-template-columns: 1fr; }
       .feature-grid { grid-template-columns: 1fr; }
+      .how-grid { grid-template-columns: 1fr; }
+      .stats-row { gap: 24px; }
+      .hero-pipeline { overflow-x: auto; }
+      .nav-links a:not(.nav-install) { display: none; }
+    }
+    @media (max-width: 500px) {
+      .hero h1 { font-size: 2.2rem; }
+      .stats-row { flex-direction: column; gap: 12px; }
+      .cred-line { flex-direction: column; gap: 8px; }
     }
   </style>
 </head>
 <body>
 
-  <section class="hero">
+  <!-- Nav -->
+  <nav>
+    <div class="nav-inner">
+      <div class="nav-brand">
+        <svg viewBox="0 0 64 64" width="28" height="28">
+          <path d="M42 10V50A16 16 0 1 1 42 22" fill="none" stroke="#58a6ff" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        <span class="nav-logo">dobbe</span>
+      </div>
+      <div class="nav-links">
+        <a href="#features">Features</a>
+        <a href="#how-it-works">How It Works</a>
+        <a href="https://github.com/nareshnavinash/dobbe-mcp">GitHub</a>
+        <a href="#install" class="nav-install">Install</a>
+      </div>
+    </div>
+  </nav>
+
+  <!-- ==================== SECTION 1: HERO ==================== -->
+  <section class="hero" id="install">
+    <div class="hero-glow"></div>
+
+    <div class="hero-logo">
+      <svg viewBox="0 0 64 64" width="80" height="80">
+        <path d="M42 10V50A16 16 0 1 1 42 22" fill="none" stroke="#58a6ff" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    </div>
+
     <h1>dobbe</h1>
-    <p class="tagline">DevOps autopilot for Claude Code. Scan vulns, fix deps, review PRs, generate tests, track DORA metrics. 16 commands, zero config.</p>
-    <div class="install-box" onclick="navigator.clipboard.writeText('npx dobbe install')" title="Click to copy">
+    <p class="tagline">DevOps autopilot for Claude Code. Scan vulns, fix deps, review PRs, generate tests, track DORA metrics.</p>
+
+    <div class="install-box" id="install-box" title="Click to copy">
+      <span class="prefix">$</span> npx dobbe install
+    </div>
+    <p class="install-hint">Click to copy. Zero config required.</p>
+    <div class="cta-row">
+      <a href="https://github.com/nareshnavinash/dobbe-mcp" class="cta cta-primary">View on GitHub</a>
+      <a href="#features" class="cta cta-secondary">See features</a>
+    </div>
+
+    <!-- Pipeline SVG visualization -->
+    <div class="hero-pipeline">
+      <svg viewBox="0 0 780 170" width="780" height="170" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0 0L10 5L0 10z" fill="#30363d"/></marker>
+          <marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0 0L10 5L0 10z" fill="#f85149"/></marker>
+          <filter id="gs" x="-40%" y="-40%" width="180%" height="180%"><feGaussianBlur stdDeviation="4"/><feFlood flood-color="#58a6ff" flood-opacity="0.2"/><feComposite in2="SourceGraphic" operator="in"/><feMerge><feMergeNode/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+          <filter id="go" x="-40%" y="-40%" width="180%" height="180%"><feGaussianBlur stdDeviation="4"/><feFlood flood-color="#d29922" flood-opacity="0.2"/><feComposite in2="SourceGraphic" operator="in"/><feMerge><feMergeNode/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+          <filter id="gp" x="-40%" y="-40%" width="180%" height="180%"><feGaussianBlur stdDeviation="4"/><feFlood flood-color="#bc8cff" flood-opacity="0.2"/><feComposite in2="SourceGraphic" operator="in"/><feMerge><feMergeNode/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+          <filter id="gc" x="-40%" y="-40%" width="180%" height="180%"><feGaussianBlur stdDeviation="4"/><feFlood flood-color="#39d2c0" flood-opacity="0.2"/><feComposite in2="SourceGraphic" operator="in"/><feMerge><feMergeNode/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+          <filter id="gk" x="-40%" y="-40%" width="180%" height="180%"><feGaussianBlur stdDeviation="4"/><feFlood flood-color="#f778ba" flood-opacity="0.2"/><feComposite in2="SourceGraphic" operator="in"/><feMerge><feMergeNode/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+          <filter id="gg" x="-40%" y="-40%" width="180%" height="180%"><feGaussianBlur stdDeviation="5"/><feFlood flood-color="#3fb950" flood-opacity="0.25"/><feComposite in2="SourceGraphic" operator="in"/><feMerge><feMergeNode/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+        </defs>
+
+        <!-- Connections -->
+        <line x1="88" y1="36" x2="118" y2="36" stroke="#30363d" stroke-width="1.5" marker-end="url(#a)"/>
+        <line x1="208" y1="36" x2="238" y2="36" stroke="#30363d" stroke-width="1.5" marker-end="url(#a)"/>
+        <line x1="328" y1="36" x2="358" y2="36" stroke="#30363d" stroke-width="1.5" marker-end="url(#a)"/>
+        <line x1="448" y1="36" x2="478" y2="36" stroke="#30363d" stroke-width="1.5" marker-end="url(#a)"/>
+        <line x1="568" y1="36" x2="598" y2="36" stroke="#30363d" stroke-width="1.5" marker-end="url(#a)"/>
+        <line x1="688" y1="36" x2="714" y2="36" stroke="#30363d" stroke-width="1.5" marker-end="url(#a)"/>
+
+        <!-- Retry curve: verify -> fix -->
+        <path d="M 403,58 C 403,120 163,120 163,58" fill="none" stroke="#f85149" stroke-width="1.5" stroke-dasharray="5,3" marker-end="url(#ar)" style="animation: retryPulse 2s ease-in-out infinite"/>
+        <text x="283" y="112" text-anchor="middle" font-family="ui-monospace,Consolas,monospace" font-size="10" fill="#f85149">fail? retry with feedback (3x)</text>
+
+        <!-- scan -->
+        <rect x="4" y="16" width="84" height="40" rx="8" fill="#161b22" stroke="#58a6ff" stroke-width="2" filter="url(#gs)"/>
+        <text x="46" y="41" text-anchor="middle" font-family="ui-monospace,Consolas,monospace" font-size="12" font-weight="600" fill="#58a6ff">scan</text>
+        <text x="46" y="72" text-anchor="middle" font-family="-apple-system,sans-serif" font-size="10" fill="#8b949e">Fetch alerts</text>
+
+        <!-- fix -->
+        <rect x="120" y="16" width="84" height="40" rx="8" fill="#161b22" stroke="#d29922" stroke-width="2" filter="url(#go)"/>
+        <text x="162" y="41" text-anchor="middle" font-family="ui-monospace,Consolas,monospace" font-size="12" font-weight="600" fill="#d29922">fix</text>
+        <text x="162" y="72" text-anchor="middle" font-family="-apple-system,sans-serif" font-size="10" fill="#8b949e">Upgrade deps</text>
+
+        <!-- commit -->
+        <rect x="240" y="16" width="84" height="40" rx="8" fill="#161b22" stroke="#bc8cff" stroke-width="2" filter="url(#gp)"/>
+        <text x="282" y="41" text-anchor="middle" font-family="ui-monospace,Consolas,monospace" font-size="12" font-weight="600" fill="#bc8cff">commit</text>
+        <text x="282" y="72" text-anchor="middle" font-family="-apple-system,sans-serif" font-size="10" fill="#8b949e">Stage changes</text>
+
+        <!-- verify -->
+        <rect x="360" y="16" width="84" height="40" rx="8" fill="#161b22" stroke="#d29922" stroke-width="2" filter="url(#go)"/>
+        <text x="402" y="41" text-anchor="middle" font-family="ui-monospace,Consolas,monospace" font-size="12" font-weight="600" fill="#d29922">verify</text>
+        <text x="402" y="72" text-anchor="middle" font-family="-apple-system,sans-serif" font-size="10" fill="#8b949e">Run tests</text>
+
+        <!-- report -->
+        <rect x="480" y="16" width="84" height="40" rx="8" fill="#161b22" stroke="#39d2c0" stroke-width="2" filter="url(#gc)"/>
+        <text x="522" y="41" text-anchor="middle" font-family="ui-monospace,Consolas,monospace" font-size="12" font-weight="600" fill="#39d2c0">report</text>
+        <text x="522" y="72" text-anchor="middle" font-family="-apple-system,sans-serif" font-size="10" fill="#8b949e">Summary</text>
+
+        <!-- pr -->
+        <rect x="600" y="16" width="84" height="40" rx="8" fill="#161b22" stroke="#f778ba" stroke-width="2" filter="url(#gk)"/>
+        <text x="642" y="41" text-anchor="middle" font-family="ui-monospace,Consolas,monospace" font-size="12" font-weight="600" fill="#f778ba">pr</text>
+        <text x="642" y="72" text-anchor="middle" font-family="-apple-system,sans-serif" font-size="10" fill="#8b949e">Create PR</text>
+
+        <!-- done (circle) -->
+        <circle cx="738" cy="36" r="22" fill="#161b22" stroke="#3fb950" stroke-width="2" filter="url(#gg)"/>
+        <!-- checkmark -->
+        <path d="M728,36 L735,43 L750,28" fill="none" stroke="#3fb950" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+
+        <!-- Animated dot -->
+        <circle r="3.5" fill="#e6edf3" opacity="0.6">
+          <animateMotion dur="4s" repeatCount="indefinite" path="M46,36 L162,36 L282,36 L402,36 L522,36 L642,36 L738,36" calcMode="spline" keySplines="0.4 0 0.6 1;0.4 0 0.6 1;0.4 0 0.6 1;0.4 0 0.6 1;0.4 0 0.6 1;0.4 0 0.6 1" keyTimes="0;0.16;0.33;0.5;0.66;0.83;1"/>
+        </circle>
+      </svg>
+      <p class="hero-pipeline-caption">Every command is a state machine. Zod validates every step. Retries inject the exact error output.</p>
+    </div>
+  </section>
+
+  <!-- ==================== SECTION 2: BEFORE/AFTER + STATS ==================== -->
+  <section class="value-section reveal" id="value">
+    <h2><span class="section-title">45 minutes to 3 minutes</span></h2>
+    <div class="compare-grid">
+      <div class="compare-panel compare-old">
+        <div class="compare-header">The old way <span class="compare-time">~45 min</span></div>
+        <div class="compare-body">
+          <div class="cmd">$ gh api /repos/acme/web/dependabot/alerts</div>
+          <div class="comment"># ...read 47 lines of JSON...</div>
+          <div class="cmd">$ git checkout -b fix/security-patch</div>
+          <div class="cmd">$ npm install lodash@4.17.21</div>
+          <div class="cmd">$ npm test</div>
+          <div class="comment"># FAILED -- TypeError in utils.js:42</div>
+          <div class="comment"># ...debug for 20 minutes...</div>
+          <div class="cmd">$ npm install lodash@4.17.21 axios@0.21.4</div>
+          <div class="cmd">$ npm test</div>
+          <div class="comment"># PASSED</div>
+          <div class="cmd">$ git add -A && git commit -m "fix: deps"</div>
+          <div class="cmd">$ git push -u origin HEAD</div>
+          <div class="cmd">$ gh pr create --title "fix: deps"</div>
+        </div>
+      </div>
+      <div class="compare-panel compare-new">
+        <div class="compare-header">The dobbe way <span class="compare-time">~3 min</span></div>
+        <div class="compare-body">
+          <div class="cmd">/dobbe-vuln-resolve</div>
+          <br>
+          <div><span class="step-label step-scan">[scan]</span>&nbsp;&nbsp;&nbsp;&nbsp;Found 3 Dependabot alerts</div>
+          <div><span class="step-label step-fix">[fix]</span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Upgraded lodash, axios</div>
+          <div><span class="step-label step-fail">[verify]</span>&nbsp;&nbsp;Tests failed (TypeError)</div>
+          <div><span class="step-label step-retry">[retry]</span>&nbsp;&nbsp;&nbsp;Feedback injected, attempt 2/3</div>
+          <div><span class="step-label step-fix">[fix]</span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Alternative version pinned</div>
+          <div><span class="step-label step-pass">[verify]</span>&nbsp;&nbsp;Tests passed (147/147)</div>
+          <div><span class="step-label step-pr">[pr]</span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;PR #142 created</div>
+          <br>
+          <div class="comment"># Done. One command. Automatic retry.</div>
+        </div>
+      </div>
+    </div>
+    <div class="stats-row">
+      <div class="stat"><div class="number" data-target="16">0</div><div class="label">commands</div></div>
+      <div class="stat"><div class="number" data-target="13">0</div><div class="label">pipelines</div></div>
+      <div class="stat"><div class="number" data-target="266">0</div><div class="label">tests</div></div>
+      <div class="stat"><div class="number" data-target="94" data-suffix="%">0</div><div class="label">coverage</div></div>
+    </div>
+  </section>
+
+  <!-- ==================== SECTION 3: FEATURES ==================== -->
+  <section class="features-section reveal" id="features">
+    <h2><span class="section-title">What dobbe does</span></h2>
+    <div class="feature-grid">
+      <div class="feature-card card-vuln">
+        <svg class="feature-icon" viewBox="0 0 36 36" fill="none"><path d="M18 3L3 10v8c0 8.3 6.4 16 15 18 8.6-2 15-9.7 15-18v-8L18 3z" stroke="#f85149" stroke-width="2"/><path d="M13 18l3 3 7-7" stroke="#f85149" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <div class="cmd-line">/dobbe-vuln-resolve</div>
+        <h3>Vulnerability Resolution <span class="retry-badge">3x retry</span></h3>
+        <p>Scan alerts, triage by risk, upgrade packages, run tests, auto-retry on failure, create PR.</p>
+      </div>
+      <div class="feature-card card-review">
+        <svg class="feature-icon" viewBox="0 0 36 36" fill="none"><circle cx="15" cy="15" r="10" stroke="#58a6ff" stroke-width="2"/><path d="M22 22l10 10" stroke="#58a6ff" stroke-width="2" stroke-linecap="round"/><path d="M11 15h8M15 11v8" stroke="#58a6ff" stroke-width="1.5" stroke-linecap="round" opacity="0.5"/></svg>
+        <div class="cmd-line">/dobbe-review-post</div>
+        <h3>Code Review</h3>
+        <p>Deep AI review with security and quality analysis. Posts comments directly to GitHub.</p>
+      </div>
+      <div class="feature-card card-test">
+        <svg class="feature-icon" viewBox="0 0 36 36" fill="none"><path d="M14 3v10l-8 14a3 3 0 003 3h18a3 3 0 003-3l-8-14V3" stroke="#3fb950" stroke-width="2"/><path d="M12 3h12" stroke="#3fb950" stroke-width="2" stroke-linecap="round"/><circle cx="16" cy="24" r="2" fill="#3fb950"/><circle cx="22" cy="21" r="1.5" fill="#3fb950"/></svg>
+        <div class="cmd-line">/dobbe-test-gen</div>
+        <h3>Test Generation <span class="retry-badge">3x retry</span></h3>
+        <p>Find coverage gaps, generate tests, verify they pass, retry if not, create PR.</p>
+      </div>
+      <div class="feature-card card-dora">
+        <svg class="feature-icon" viewBox="0 0 36 36" fill="none"><rect x="4" y="22" width="6" height="10" rx="1" stroke="#39d2c0" stroke-width="2"/><rect x="15" y="14" width="6" height="18" rx="1" stroke="#39d2c0" stroke-width="2"/><rect x="26" y="6" width="6" height="26" rx="1" stroke="#39d2c0" stroke-width="2"/></svg>
+        <div class="cmd-line">/dobbe-metrics-dora</div>
+        <h3>DORA Metrics</h3>
+        <p>Deploy frequency, lead time, failure rate, MTTR. With DORA benchmark ratings.</p>
+      </div>
+      <div class="feature-card card-incident">
+        <svg class="feature-icon" viewBox="0 0 36 36" fill="none"><path d="M18 4L3 30h30L18 4z" stroke="#d29922" stroke-width="2" stroke-linejoin="round"/><path d="M18 14v8" stroke="#d29922" stroke-width="2" stroke-linecap="round"/><circle cx="18" cy="26" r="1.5" fill="#d29922"/></svg>
+        <div class="cmd-line">/dobbe-incident-triage</div>
+        <h3>Incident Triage</h3>
+        <p>Sentry issue triage with AI root cause analysis and resolution suggestions.</p>
+      </div>
+      <div class="feature-card card-audit">
+        <svg class="feature-icon" viewBox="0 0 36 36" fill="none"><rect x="6" y="4" width="24" height="28" rx="3" stroke="#f778ba" stroke-width="2"/><path d="M12 12h12M12 18h12M12 24h8" stroke="#f778ba" stroke-width="1.5" stroke-linecap="round" opacity="0.5"/><circle cx="28" cy="28" r="7" fill="#0d1117" stroke="#f778ba" stroke-width="2"/><path d="M26 28l2 2 4-4" stroke="#f778ba" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <div class="cmd-line">/dobbe-audit-report</div>
+        <h3>Security Audit</h3>
+        <p>Vulns, licenses, secrets, code quality. Four dimensions in one command.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ==================== SECTION 4: HOW IT WORKS + TERMINAL ==================== -->
+  <section class="how-section reveal" id="how-it-works">
+    <h2><span class="section-title">How it works</span></h2>
+    <div class="how-grid">
+      <div class="steps">
+        <div class="step">
+          <div class="step-num">1</div>
+          <div class="step-text">
+            <h3>Install</h3>
+            <p>Run <code>npx dobbe install</code> and restart Claude Code. Skills appear as <code>/dobbe-*</code> commands.</p>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num">2</div>
+          <div class="step-text">
+            <h3>Run a command</h3>
+            <p>Type <code>/dobbe-vuln-resolve</code>. The MCP server starts a state machine and sends instructions.</p>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num">3</div>
+          <div class="step-text">
+            <h3>Claude does the work</h3>
+            <p>Claude follows each step, submits results. If tests fail, the server retries with error context. You get a PR.</p>
+          </div>
+        </div>
+      </div>
+      <div class="terminal" id="terminal">
+        <div class="terminal-bar">
+          <div class="terminal-dot dot-r"></div>
+          <div class="terminal-dot dot-y"></div>
+          <div class="terminal-dot dot-g"></div>
+          <div class="terminal-title">/dobbe-vuln-resolve</div>
+        </div>
+        <div class="terminal-body">
+          <div class="terminal-line"><span class="t-comment">// You type /dobbe-vuln-resolve</span></div>
+          <div class="terminal-line">&nbsp;</div>
+          <div class="terminal-line"><span class="t-out">&rarr;</span> <span class="t-key">pipeline_start</span>({<span class="t-str">"vuln-resolve"</span>, repo: <span class="t-str">"acme/app"</span>})</div>
+          <div class="terminal-line"><span class="t-in">&larr;</span> {step: <span class="t-str">"scan"</span>, instruction: <span class="t-str">"Fetch alerts..."</span>}</div>
+          <div class="terminal-line">&nbsp;</div>
+          <div class="terminal-line"><span class="t-out">&rarr;</span> <span class="t-key">pipeline_step</span>({result: {alerts: <span class="t-val">3</span>}})</div>
+          <div class="terminal-line"><span class="t-in">&larr;</span> {step: <span class="t-str">"fix"</span>, instruction: <span class="t-str">"Upgrade lodash..."</span>}</div>
+          <div class="terminal-line">&nbsp;</div>
+          <div class="terminal-line"><span class="t-comment">// Tests fail -- server auto-retries with feedback</span></div>
+          <div class="terminal-line"><span class="t-in">&larr;</span> {step: <span class="t-str">"fix"</span>, iteration: <span class="t-val">2</span>, feedback: <span class="t-str">"TypeError..."</span>}</div>
+          <div class="terminal-line">&nbsp;</div>
+          <div class="terminal-line"><span class="t-in">&larr;</span> {done: <span class="t-val">true</span>} <span class="t-comment">// PR created</span></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ==================== SECTION 5: ECOSYSTEM + CREDIBILITY ==================== -->
+  <section class="eco-section reveal" id="ecosystem">
+    <h2><span class="section-title">Works with your stack</span></h2>
+    <div class="eco-badges">
+      <span class="eco-badge">GitHub</span>
+      <span class="eco-badge">Sentry</span>
+      <span class="eco-badge">Slack</span>
+      <span class="eco-badge">npm</span>
+      <span class="eco-badge">pip</span>
+      <span class="eco-badge">bundler</span>
+      <span class="eco-badge">Cargo</span>
+      <span class="eco-badge">Go mod</span>
+      <span class="eco-badge">Jest</span>
+      <span class="eco-badge">pytest</span>
+      <span class="eco-badge">Vitest</span>
+      <span class="eco-badge">Go test</span>
+      <span class="eco-badge">RSpec</span>
+    </div>
+    <p class="eco-note">Auto-detects: Django, Angular, React, Next.js, Express, Flask, FastAPI, Spring Boot, Rails</p>
+    <div class="cred-line">
+      <span><span class="cred-val">266</span> tests</span>
+      <span class="cred-sep">|</span>
+      <span><span class="cred-val">94%</span> coverage</span>
+      <span class="cred-sep">|</span>
+      <span><span class="cred-val">0</span> config files</span>
+      <span class="cred-sep">|</span>
+      <span><span class="cred-val">3x</span> auto-retry</span>
+    </div>
+  </section>
+
+  <!-- ==================== SECTION 6: BOTTOM CTA ==================== -->
+  <section class="bottom-cta reveal">
+    <h2>Ready to automate your DevOps?</h2>
+    <p class="sub">Install in 10 seconds. Uninstall just as fast.</p>
+    <div class="install-box" id="install-box-bottom" title="Click to copy">
       <span class="prefix">$</span> npx dobbe install
     </div>
     <br><br>
-    <a href="https://github.com/nareshnavinash/dobbe-mcp" class="cta">View on GitHub</a>
-  </section>
-
-  <section class="stats">
-    <div class="stat">
-      <div class="number">16</div>
-      <div class="label">Commands</div>
-    </div>
-    <div class="stat">
-      <div class="number">13</div>
-      <div class="label">Pipelines</div>
-    </div>
-    <div class="stat">
-      <div class="number">3</div>
-      <div class="label">Retry Loops</div>
-    </div>
-    <div class="stat">
-      <div class="number">266</div>
-      <div class="label">Tests</div>
+    <div class="cta-row" style="justify-content: center;">
+      <a href="https://github.com/nareshnavinash/dobbe-mcp" class="cta cta-primary">View on GitHub</a>
+      <a href="https://www.npmjs.com/package/dobbe" class="cta cta-secondary">npm package</a>
     </div>
   </section>
 
-  <section class="features">
-    <h2>What dobbe does</h2>
-    <div class="feature-grid">
-      <div class="feature-card">
-        <h3>Vulnerability Resolution</h3>
-        <p>Scan Dependabot alerts, triage by risk, upgrade packages, run tests, retry on failure, create PR. Fully automated.</p>
-        <div class="cmd">/dobbe-vuln-resolve</div>
-      </div>
-      <div class="feature-card">
-        <h3>Code Review</h3>
-        <p>Fetch open PRs, perform deep AI review with risk assessment, post comments directly to GitHub.</p>
-        <div class="cmd">/dobbe-review-post</div>
-      </div>
-      <div class="feature-card">
-        <h3>Test Generation</h3>
-        <p>Find coverage gaps, generate tests, verify they pass, retry if not, create PR. Up to 3 iterations.</p>
-        <div class="cmd">/dobbe-test-gen</div>
-      </div>
-      <div class="feature-card">
-        <h3>DORA Metrics</h3>
-        <p>Deploy frequency, lead time, change failure rate, MTTR. Computed from your GitHub data.</p>
-        <div class="cmd">/dobbe-metrics-dora</div>
-      </div>
-      <div class="feature-card">
-        <h3>Incident Triage</h3>
-        <p>Fetch Sentry issues, AI-powered root cause analysis, severity assessment, resolution suggestions.</p>
-        <div class="cmd">/dobbe-incident-triage</div>
-      </div>
-      <div class="feature-card">
-        <h3>Security Audit</h3>
-        <p>Vulnerabilities, licenses, secrets, code quality. Single command, comprehensive report.</p>
-        <div class="cmd">/dobbe-audit-report</div>
-      </div>
-    </div>
-  </section>
-
-  <section class="how-it-works">
-    <h2>How it works</h2>
-    <div class="steps">
-      <div class="step">
-        <div class="step-number">1</div>
-        <div class="step-content">
-          <h3>Install in 10 seconds</h3>
-          <p>Run <code>npx dobbe install</code> and restart Claude Code. Skills appear as <code>/dobbe-*</code> slash commands.</p>
-        </div>
-      </div>
-      <div class="step">
-        <div class="step-number">2</div>
-        <div class="step-content">
-          <h3>Run a command</h3>
-          <p>Type <code>/dobbe-vuln-resolve</code> in Claude Code. The MCP server starts a state machine pipeline and returns step-by-step instructions.</p>
-        </div>
-      </div>
-      <div class="step">
-        <div class="step-number">3</div>
-        <div class="step-content">
-          <h3>Claude does the work</h3>
-          <p>Claude follows instructions, submits results at each step. If tests fail, the server automatically retries with feedback. You get a PR at the end.</p>
-        </div>
-      </div>
-    </div>
-  </section>
-
+  <!-- ==================== FOOTER ==================== -->
   <footer>
-    <p>
-      <a href="https://github.com/nareshnavinash/dobbe-mcp">GitHub</a> &middot;
-      <a href="https://www.npmjs.com/package/dobbe">npm</a> &middot;
+    <div class="footer-links">
+      <a href="https://github.com/nareshnavinash/dobbe-mcp">GitHub</a>
+      <span class="footer-sep">&middot;</span>
+      <a href="https://www.npmjs.com/package/dobbe">npm</a>
+      <span class="footer-sep">&middot;</span>
+      <a href="https://github.com/nareshnavinash/dobbe-mcp/issues">Issues</a>
+      <span class="footer-sep">&middot;</span>
+      <a href="https://github.com/nareshnavinash/dobbe-mcp/blob/main/CONTRIBUTING.md">Contributing</a>
+      <span class="footer-sep">&middot;</span>
+      <a href="https://github.com/nareshnavinash/dobbe-mcp/blob/main/CHANGELOG.md">Changelog</a>
+      <span class="footer-sep">&middot;</span>
       <a href="https://github.com/nareshnavinash/dobbe-mcp/blob/main/LICENSE">MIT License</a>
-    </p>
-    <p style="margin-top: 8px;">Built by <a href="https://github.com/nareshnavinash">Naresh Sekar</a></p>
+    </div>
+    <div style="font-size: 0.78rem; color: #484f58; margin-top: 8px;">
+      v0.1.0 &middot; Built with TypeScript, Zod, and the MCP SDK &middot; by <a href="https://github.com/nareshnavinash">Naresh Sekar</a>
+    </div>
   </footer>
+
+  <script>
+    // Copy to clipboard
+    function setupCopy(id) {
+      var box = document.getElementById(id);
+      if (!box) return;
+      box.addEventListener('click', function() {
+        navigator.clipboard.writeText('npx dobbe install');
+        var orig = box.innerHTML;
+        box.innerHTML = '<span style="color:#3fb950;font-weight:600">Copied!</span>';
+        setTimeout(function() { box.innerHTML = orig; }, 2000);
+      });
+    }
+    setupCopy('install-box');
+    setupCopy('install-box-bottom');
+
+    // Stats count-up
+    function animateStats() {
+      document.querySelectorAll('.stat .number').forEach(function(el) {
+        var target = parseInt(el.getAttribute('data-target'));
+        var suffix = el.getAttribute('data-suffix') || '';
+        var start = performance.now();
+        var dur = 1200;
+        function tick(now) {
+          var p = Math.min((now - start) / dur, 1);
+          var eased = 1 - Math.pow(1 - p, 3);
+          el.textContent = Math.round(target * eased) + suffix;
+          if (p < 1) requestAnimationFrame(tick);
+        }
+        requestAnimationFrame(tick);
+      });
+    }
+
+    // Scroll reveal + stats trigger
+    var statsTriggered = false;
+    var revealObs = new IntersectionObserver(function(entries) {
+      entries.forEach(function(e) {
+        if (e.isIntersecting) {
+          e.target.classList.add('visible');
+          // Stats animation
+          if (e.target.querySelector('.stats-row') && !statsTriggered) {
+            statsTriggered = true;
+            animateStats();
+          }
+        }
+      });
+    }, { threshold: 0.15 });
+    document.querySelectorAll('.reveal').forEach(function(el) { revealObs.observe(el); });
+
+    // Terminal typing animation
+    var terminalTriggered = false;
+    var termObs = new IntersectionObserver(function(entries) {
+      entries.forEach(function(e) {
+        if (e.isIntersecting && !terminalTriggered) {
+          terminalTriggered = true;
+          var lines = document.querySelectorAll('.terminal-line');
+          lines.forEach(function(line, i) {
+            setTimeout(function() { line.classList.add('typed'); }, i * 250);
+          });
+        }
+      });
+    }, { threshold: 0.3 });
+    var termEl = document.getElementById('terminal');
+    if (termEl) termObs.observe(termEl);
+  </script>
 
 </body>
 </html>

@@ -1,0 +1,143 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 640" width="1280" height="640">
+  <defs>
+    <!-- Grid pattern -->
+    <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
+      <path d="M 40 0 L 0 0 0 40" fill="none" stroke="rgba(48,54,61,0.25)" stroke-width="0.5"/>
+    </pattern>
+    <!-- Blue glow -->
+    <radialGradient id="center-glow" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#58a6ff" stop-opacity="0.08"/>
+      <stop offset="70%" stop-color="#58a6ff" stop-opacity="0"/>
+    </radialGradient>
+    <!-- Arrow marker -->
+    <marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-auto">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#30363d"/>
+    </marker>
+    <marker id="arr-red" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-auto">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#f85149"/>
+    </marker>
+    <!-- Node glow filters -->
+    <filter id="g-blue" x="-40%" y="-40%" width="180%" height="180%">
+      <feGaussianBlur stdDeviation="4"/><feFlood flood-color="#58a6ff" flood-opacity="0.25"/><feComposite in2="SourceGraphic" operator="in"/><feMerge><feMergeNode/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <filter id="g-orange" x="-40%" y="-40%" width="180%" height="180%">
+      <feGaussianBlur stdDeviation="4"/><feFlood flood-color="#d29922" flood-opacity="0.25"/><feComposite in2="SourceGraphic" operator="in"/><feMerge><feMergeNode/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <filter id="g-purple" x="-40%" y="-40%" width="180%" height="180%">
+      <feGaussianBlur stdDeviation="4"/><feFlood flood-color="#bc8cff" flood-opacity="0.25"/><feComposite in2="SourceGraphic" operator="in"/><feMerge><feMergeNode/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <filter id="g-cyan" x="-40%" y="-40%" width="180%" height="180%">
+      <feGaussianBlur stdDeviation="4"/><feFlood flood-color="#39d2c0" flood-opacity="0.25"/><feComposite in2="SourceGraphic" operator="in"/><feMerge><feMergeNode/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <filter id="g-pink" x="-40%" y="-40%" width="180%" height="180%">
+      <feGaussianBlur stdDeviation="4"/><feFlood flood-color="#f778ba" flood-opacity="0.25"/><feComposite in2="SourceGraphic" operator="in"/><feMerge><feMergeNode/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <filter id="g-green" x="-40%" y="-40%" width="180%" height="180%">
+      <feGaussianBlur stdDeviation="6"/><feFlood flood-color="#3fb950" flood-opacity="0.3"/><feComposite in2="SourceGraphic" operator="in"/><feMerge><feMergeNode/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+
+  <!-- Background -->
+  <rect width="1280" height="640" fill="#0d1117"/>
+  <rect width="1280" height="640" fill="url(#grid)"/>
+  <rect width="1280" height="640" fill="url(#center-glow)"/>
+
+  <!-- Border -->
+  <rect x="1" y="1" width="1278" height="638" rx="16" fill="none" stroke="#30363d" stroke-width="1"/>
+
+  <!-- ==================== LEFT ZONE: Logo + Wordmark ==================== -->
+
+  <!-- Logo: clean bold "d" lettermark -->
+  <g transform="translate(138, 185)">
+    <path d="M52 12V62A20 20 0 1 1 52 27" fill="none" stroke="#58a6ff" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/>
+  </g>
+
+  <!-- Wordmark -->
+  <text x="180" y="340" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Consolas,monospace" font-size="56" font-weight="800" fill="#e6edf3" letter-spacing="-2">dobbe</text>
+
+  <!-- Tagline -->
+  <text x="180" y="380" text-anchor="middle" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif" font-size="18" fill="#8b949e">DevOps autopilot for Claude Code</text>
+
+  <!-- Install command -->
+  <rect x="80" y="410" width="200" height="36" rx="6" fill="#161b22" stroke="#30363d"/>
+  <text x="180" y="434" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Consolas,monospace" font-size="14" fill="#8b949e">$ npx dobbe install</text>
+
+  <!-- ==================== CENTER ZONE: Pipeline Flow ==================== -->
+
+  <!-- Pipeline nodes and connections -->
+  <!-- Y center line = 300 -->
+
+  <!-- scan node -->
+  <rect x="400" y="278" width="80" height="38" rx="8" fill="#161b22" stroke="#58a6ff" stroke-width="2" filter="url(#g-blue)"/>
+  <text x="440" y="303" text-anchor="middle" font-family="ui-monospace,Consolas,monospace" font-size="13" font-weight="600" fill="#58a6ff">scan</text>
+  <text x="440" y="332" text-anchor="middle" font-family="-apple-system,sans-serif" font-size="11" fill="#8b949e">Fetch alerts</text>
+
+  <!-- Arrow scan -> fix -->
+  <line x1="482" y1="297" x2="518" y2="297" stroke="#30363d" stroke-width="1.5" marker-end="url(#arr)"/>
+
+  <!-- fix node -->
+  <rect x="520" y="278" width="80" height="38" rx="8" fill="#161b22" stroke="#d29922" stroke-width="2" filter="url(#g-orange)"/>
+  <text x="560" y="303" text-anchor="middle" font-family="ui-monospace,Consolas,monospace" font-size="13" font-weight="600" fill="#d29922">fix</text>
+  <text x="560" y="332" text-anchor="middle" font-family="-apple-system,sans-serif" font-size="11" fill="#8b949e">Upgrade deps</text>
+
+  <!-- Arrow fix -> commit -->
+  <line x1="602" y1="297" x2="638" y2="297" stroke="#30363d" stroke-width="1.5" marker-end="url(#arr)"/>
+
+  <!-- commit node -->
+  <rect x="640" y="278" width="80" height="38" rx="8" fill="#161b22" stroke="#bc8cff" stroke-width="2" filter="url(#g-purple)"/>
+  <text x="680" y="303" text-anchor="middle" font-family="ui-monospace,Consolas,monospace" font-size="13" font-weight="600" fill="#bc8cff">commit</text>
+  <text x="680" y="332" text-anchor="middle" font-family="-apple-system,sans-serif" font-size="11" fill="#8b949e">Stage changes</text>
+
+  <!-- Arrow commit -> verify -->
+  <line x1="722" y1="297" x2="758" y2="297" stroke="#30363d" stroke-width="1.5" marker-end="url(#arr)"/>
+
+  <!-- verify node -->
+  <rect x="760" y="278" width="80" height="38" rx="8" fill="#161b22" stroke="#d29922" stroke-width="2" filter="url(#g-orange)"/>
+  <text x="800" y="303" text-anchor="middle" font-family="ui-monospace,Consolas,monospace" font-size="13" font-weight="600" fill="#d29922">verify</text>
+  <text x="800" y="332" text-anchor="middle" font-family="-apple-system,sans-serif" font-size="11" fill="#8b949e">Run tests</text>
+
+  <!-- Arrow verify -> report -->
+  <line x1="842" y1="297" x2="878" y2="297" stroke="#30363d" stroke-width="1.5" marker-end="url(#arr)"/>
+
+  <!-- report node -->
+  <rect x="880" y="278" width="80" height="38" rx="8" fill="#161b22" stroke="#39d2c0" stroke-width="2" filter="url(#g-cyan)"/>
+  <text x="920" y="303" text-anchor="middle" font-family="ui-monospace,Consolas,monospace" font-size="13" font-weight="600" fill="#39d2c0">report</text>
+
+  <!-- Arrow report -> done -->
+  <line x1="962" y1="297" x2="990" y2="297" stroke="#30363d" stroke-width="1.5" marker-end="url(#arr)"/>
+
+  <!-- done node (circle) -->
+  <circle cx="1016" cy="297" r="22" fill="#161b22" stroke="#3fb950" stroke-width="2" filter="url(#g-green)"/>
+  <text x="1016" y="303" text-anchor="middle" font-family="ui-monospace,Consolas,monospace" font-size="12" font-weight="600" fill="#3fb950">done</text>
+
+  <!-- Retry loop: verify -> fix (curved below) -->
+  <path
+    d="M 800,318 C 800,390 560,390 560,318"
+    fill="none" stroke="#f85149" stroke-width="2" stroke-dasharray="6,4"
+    marker-end="url(#arr-red)"
+  />
+  <text x="680" y="380" text-anchor="middle" font-family="ui-monospace,Consolas,monospace" font-size="11" fill="#f85149">fail? retry with feedback (3x)</text>
+
+  <!-- Animated dot traveling the pipeline -->
+  <circle r="4" fill="#e6edf3" opacity="0.7">
+    <animateMotion dur="5s" repeatCount="indefinite" keyPoints="0;0.15;0.3;0.45;0.6;0.75;0.9;1" keyTimes="0;0.15;0.3;0.45;0.6;0.75;0.9;1" calcMode="linear">
+      <mpath href="#flow-path"/>
+    </animateMotion>
+  </circle>
+  <path id="flow-path" d="M 440,297 L 560,297 L 680,297 L 800,297 L 920,297 L 1016,297" fill="none" stroke="none"/>
+
+  <!-- ==================== RIGHT ZONE: Stats ==================== -->
+
+  <!-- Stat 1 -->
+  <text x="1160" y="240" text-anchor="middle" font-family="ui-monospace,Consolas,monospace" font-size="42" font-weight="800" fill="#3fb950">16</text>
+  <text x="1160" y="264" text-anchor="middle" font-family="-apple-system,sans-serif" font-size="14" fill="#8b949e">commands</text>
+
+  <!-- Stat 2 -->
+  <text x="1160" y="330" text-anchor="middle" font-family="ui-monospace,Consolas,monospace" font-size="42" font-weight="800" fill="#3fb950">0</text>
+  <text x="1160" y="354" text-anchor="middle" font-family="-apple-system,sans-serif" font-size="14" fill="#8b949e">config files</text>
+
+  <!-- Stat 3 -->
+  <text x="1160" y="420" text-anchor="middle" font-family="ui-monospace,Consolas,monospace" font-size="42" font-weight="800" fill="#3fb950">3x</text>
+  <text x="1160" y="444" text-anchor="middle" font-family="-apple-system,sans-serif" font-size="14" fill="#8b949e">auto-retry</text>
+
+</svg>

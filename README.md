@@ -1,7 +1,5 @@
 <p align="center">
-  <h1 align="center">dobbe</h1>
-  <p align="center"><strong>DevOps autopilot for Claude Code</strong></p>
-  <p align="center">Scan vulns. Fix deps. Review PRs. Gen tests. Track DORA metrics.<br/>16 commands. Zero config. Deterministic retry loops.</p>
+  <img src="docs/banner.svg" alt="dobbe -- DevOps autopilot for Claude Code" width="100%">
 </p>
 
 <p align="center">
@@ -9,18 +7,41 @@
   <a href="https://www.npmjs.com/package/dobbe"><img src="https://img.shields.io/npm/v/dobbe.svg" alt="npm"></a>
   <a href="https://github.com/nareshnavinash/dobbe-mcp/blob/main/LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="License"></a>
   <a href="https://nodejs.org"><img src="https://img.shields.io/badge/node-%3E%3D18-brightgreen.svg" alt="Node.js"></a>
+  <img src="https://img.shields.io/badge/tests-266%20passed-brightgreen" alt="Tests">
+  <img src="https://img.shields.io/badge/coverage-94%25-brightgreen" alt="Coverage">
 </p>
 
 ---
 
+```
+$ /dobbe-vuln-resolve
+
+[scan]    Found 3 Dependabot alerts (2 critical, 1 high)
+[fix]     Upgraded lodash 4.17.20 -> 4.17.21, axios 0.21.1 -> 0.21.4
+[verify]  Running tests... FAILED (TypeError in utils.js:42)
+[retry]   Attempt 2/3 -- feedback injected, retrying with error context
+[fix]     Pinned axios 0.21.4, added @types/lodash
+[verify]  Running tests... PASSED (147/147)
+[pr]      Created PR #142: "fix: resolve vulnerable dependencies"
+```
+
 ## Why dobbe?
 
-- **State machine, not prompts** -- Claude can't skip steps. Retry loops are deterministic, not prompt-dependent. The MCP server controls the workflow.
-- **Fix, test, retry, ship** -- Vulnerability resolve pipeline: scan alerts, upgrade packages, run tests, retry on failure (up to 3x with feedback injection), create PR. Fully automated.
-- **One command to install** -- `npx dobbe install`, restart Claude Code, done. No YAML, no config files, no dashboard.
+- **Your AI skips steps. dobbe can't.** Every pipeline is a finite state machine with Zod validation at each transition. Claude submits results, the server validates them, and only then advances to the next step. If tests fail, the server loops back automatically with the exact error output injected as context. This is program control flow, not prompt engineering.
 
-> **Without dobbe:** 45 min of manual Dependabot triage, copy-pasting `gh` commands, running tests, making PRs.
-> **With dobbe:** `/dobbe-vuln-resolve` -- scan, fix, test, retry, PR. 3 minutes.
+- **45 minutes to 3 minutes.** A typical Dependabot triage: open GitHub, read 12 alerts, figure out which matter, checkout a branch, upgrade packages, run tests, debug failures, run tests again, push, create a PR. With dobbe: type `/dobbe-vuln-resolve`. The pipeline handles all steps including up to 3 retry loops if tests break.
+
+- **One command. No config files.** `npx dobbe install` registers the MCP server and 16 slash commands. No YAML. No dashboard. No SaaS signup. Uninstall with `npx dobbe uninstall`.
+
+### Before vs. After
+
+| Task | Without dobbe | With dobbe |
+|---|---|---|
+| Resolve Dependabot alerts | Open GitHub, read alerts, checkout, upgrade, test, fix, test again, PR (~45 min) | `/dobbe-vuln-resolve` -- auto-retry, PR created (~3 min) |
+| Code review all open PRs | Read each diff, write comments, check security/tests/quality | `/dobbe-review-post` -- deep review + comments posted |
+| Find coverage gaps + write tests | Run coverage, find gaps, write tests, run, fix, repeat | `/dobbe-test-gen` -- analyze, generate, verify, retry, PR |
+| DORA metrics | Query GitHub API, compute 4 metrics, format report | `/dobbe-metrics-dora` -- one command |
+| Triage Sentry incidents | Open Sentry, read stack traces, search codebase, write analysis | `/dobbe-incident-triage` -- fetch, analyze, report |
 
 ## Quick Start
 
@@ -43,43 +64,38 @@ npx dobbe uninstall
 
 ## How It Works
 
-```
-You: /dobbe-vuln-resolve
+The MCP server runs a finite state machine. Claude executes one step at a time, submits structured results, and the server decides what happens next.
 
-Claude --> pipeline_start("vuln-resolve", {repo: "acme/web-app"})
-  MCP:  {step: "scan", instruction: "Fetch Dependabot alerts..."}
-
-Claude scans, submits results -->
-  MCP:  {step: "fix", instruction: "Upgrade lodash 4.17.20 -> 4.17.21..."}
-
-Claude fixes, submits -->
-  MCP:  {step: "verify", instruction: "Run tests..."}
-
-Tests fail --> MCP automatically retries with feedback:
-  MCP:  {step: "fix", iteration: 2, feedback: "TypeError in utils.js..."}
-
-Tests pass -->
-  MCP:  {step: "done", summary: "PR #142 created. 2 iterations.", done: true}
+```mermaid
+graph LR
+    A[scan] --> B[fix]
+    B --> C[commit]
+    C --> D{verify}
+    D -->|pass| E[report]
+    D -->|fail| B
+    E --> F[pr]
+    F --> G((done))
+    D -->|max retries| H((failed))
 ```
 
-The MCP server controls the state machine. Claude executes instructions and submits results. If verification fails, the server loops back with injected feedback -- no prompt engineering needed.
+> **The server controls the workflow, not the prompt.** If Claude submits incomplete results, the server rejects them (Zod validation). If tests fail at the verify step, the server loops back to `fix` with the error output injected as feedback -- up to 3 iterations. No prompt engineering. No hoping Claude remembers to retry.
 
 ## Commands
 
 ### AI-Powered Pipelines
 
-| Command | What it does | Retry |
-|---|---|---|
-| `/dobbe-vuln-scan` | Scan + triage Dependabot alerts | -- |
-| `/dobbe-vuln-resolve` | Scan, fix, test, retry, create PR | 3x |
-| `/dobbe-review-digest` | Fetch PRs, deep review, generate digest | -- |
-| `/dobbe-review-post` | Review PRs, post comments to GitHub | -- |
-| `/dobbe-audit-report` | Security audit (vulns, licenses, secrets, quality) | -- |
-| `/dobbe-deps-analyze` | Dependency health, licensing, usage analysis | -- |
-| `/dobbe-test-gen` | Find coverage gaps, generate tests, verify, PR | 3x |
-| `/dobbe-changelog-gen` | Git history to categorized release notes | -- |
-| `/dobbe-migration-plan` | Plan + execute dependency migrations | 3x |
-| `/dobbe-incident-triage` | Sentry issue triage with AI root cause analysis | -- |
+| Command | What it does | Pipeline flow | Retry |
+|---|---|---|---|
+| `/dobbe-vuln-scan` | Scan + triage Dependabot alerts | scan -> report -> done | -- |
+| `/dobbe-vuln-resolve` | Scan, fix, test, retry, create PR | scan -> fix -> commit -> verify -> report -> pr -> done | 3x |
+| `/dobbe-review-digest` | Fetch PRs, deep review, generate digest | fetch -> review -> done | -- |
+| `/dobbe-review-post` | Review PRs, post comments to GitHub | fetch -> review -> post -> done | -- |
+| `/dobbe-audit-report` | Security audit (vulns, licenses, secrets, quality) | analyze -> done | -- |
+| `/dobbe-deps-analyze` | Dependency health, licensing, usage analysis | analyze -> done | -- |
+| `/dobbe-test-gen` | Find coverage gaps, generate tests, verify, PR | analyze -> generate -> verify -> commit -> pr -> done | 3x |
+| `/dobbe-changelog-gen` | Git history to categorized release notes | analyze -> done | -- |
+| `/dobbe-migration-plan` | Plan + execute dependency migrations | plan -> apply -> verify -> commit -> pr -> done | 3x |
+| `/dobbe-incident-triage` | Sentry issue triage with AI root cause analysis | fetch -> triage -> done | -- |
 
 ### Metrics & Scanning
 
@@ -97,6 +113,18 @@ The MCP server controls the state machine. Claude executes instructions and subm
 | `/dobbe-doctor` | Environment health check |
 | `/dobbe-config` | View and manage configuration |
 
+## Works With
+
+| Integration | Used by |
+|---|---|
+| **GitHub** (Dependabot, PRs, Actions) | vuln-scan, vuln-resolve, review-*, metrics-*, changelog-gen |
+| **Sentry** | incident-triage |
+| **Slack** | Notification delivery (configurable channel) |
+| **npm / pip / bundler / Cargo / Go mod** | vuln-resolve, deps-analyze, migration-plan |
+| **Jest / pytest / Vitest / Go test / RSpec** | test-gen (auto-detects framework) |
+
+Auto-detects your framework: Django, Angular, React, Next.js, Express, Flask, FastAPI, Spring Boot, Rails.
+
 ## Prerequisites
 
 - **Claude Code** -- installed and authenticated
@@ -104,8 +132,9 @@ The MCP server controls the state machine. Claude executes instructions and subm
 - **gh CLI** -- for GitHub API access (`brew install gh`)
 - **MCP servers** (optional) -- GitHub, Sentry, Slack for enhanced capabilities
 
-<details>
-<summary><strong>Architecture</strong></summary>
+## Architecture
+
+**Why a state machine?** LLMs are stateless -- they forget context between tool calls. A state machine ensures every step executes in order, results are validated with Zod schemas before advancing, and retry loops inject the exact error output from the previous attempt. This is control flow, not prompt engineering.
 
 ```
 Claude Code (executor)
@@ -136,7 +165,14 @@ dobbe MCP Server (state machine controller)
         +-- File-based cache with TTL
 ```
 
-</details>
+## Built to Ship
+
+- **266 tests** with **94% coverage** -- every pipeline path is tested
+- **13 pipelines** with **Zod validation** at every state transition
+- **3 retry pipelines** with automatic feedback injection
+- **Zero global mutable state** -- `PipelineService` is fully isolated and testable
+- **Atomic file writes** -- crash-safe session persistence via write-to-temp + rename
+- **CI on Node 18, 20, 22** -- tested across all active LTS versions
 
 <details>
 <summary><strong>Configuration</strong></summary>
