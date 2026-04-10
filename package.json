@@ -1,6 +1,6 @@
 {
   "name": "dobbe",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "DevOps autopilot for Claude Code -- scan vulns, fix deps, review PRs, gen tests, track DORA metrics, multi-perspective project reviews. 21 commands, zero config.",
   "homepage": "https://github.com/nareshnavinash/dobbe-mcp#readme",
   "bugs": {

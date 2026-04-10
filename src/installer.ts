@@ -19,10 +19,16 @@ const __dirname = path.dirname(__filename);
 const PROJECT_ROOT = path.resolve(__dirname, "..", "..");
 const BUNDLED_SKILLS_DIR = path.join(PROJECT_ROOT, "skills");
 
-const MCP_SERVER_CONFIG = {
-  command: "npx",
-  args: ["-y", "dobbe"],
-};
+// Resolve the MCP server entry point to use node directly (faster, more reliable than npx)
+const MCP_ENTRY_POINT = path.join(PROJECT_ROOT, "dist", "src", "index.js");
+
+function getMcpServerConfig(): { command: string; args: string[] } {
+  // Use node with the direct path to the entry point
+  return {
+    command: "node",
+    args: [MCP_ENTRY_POINT],
+  };
+}
 
 const SKILL_PREFIX = "dobbe-";
 
@@ -198,7 +204,7 @@ async function configureMcp(
     log("  MCP server 'dobbe' already configured, updating...");
   }
 
-  mcpServers.dobbe = MCP_SERVER_CONFIG;
+  mcpServers.dobbe = getMcpServerConfig();
   settings.mcpServers = mcpServers;
 
   await fs.writeFile(settingsPath, JSON.stringify(settings, null, 2), "utf-8");
