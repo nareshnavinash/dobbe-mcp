@@ -1,6 +1,5 @@
 import type { PipelineDefinition, StepDefinition } from "../state/machine.js";
 import {
-  DiscoveryResultSchema,
   ProjectReviewSummarySchema,
 } from "../utils/schema.js";
 import { z } from "zod";
