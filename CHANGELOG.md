@@ -3,7 +3,7 @@
 All notable changes to dobbe are documented here.
 Format based on [Keep a Changelog](https://keepachangelog.com/).
 
-## [0.3.0] - 2026-04-11
+## [0.4.0] - 2026-04-11
 
 ### Changed
 - **Declarative intent-based pipeline steps** -- replaced prescriptive `instruction` strings with `intent`, `mode`, `context`, `gatherFields`, and `hints` fields. The MCP server now declares WHAT needs to happen; Claude decides HOW to interact with the user.
