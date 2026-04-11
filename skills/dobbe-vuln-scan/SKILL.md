@@ -19,16 +19,23 @@ Dependabot alerts, or assess the security posture of a repository.
    - command: `"vuln-scan"`
    - params: `{repo: "owner/repo", severity: "critical,high,medium,low"}`
 
-3. The tool returns an instruction. **Follow it exactly.**
+3. The tool returns a **declarative step** with `intent`, `mode`, `context`, and `hints`.
 
-4. After completing the scan and triage, call `mcp__dobbe__pipeline_step` with
-   your results as structured JSON matching the provided schema.
+4. Respond based on the step's **mode**:
+   - **`plan`**: Enter plan mode. Analyze the codebase, form a strategy, then execute.
+   - **`act`**: Execute the intent directly using tools, code, commands as needed.
+   - **`gather`**: Collect the requested data. Scan the codebase first, then ask the user
+     only for information the code cannot provide. Use interactive prompts where appropriate.
+   - **`report`**: Synthesize prior step results into a formatted output.
 
-5. Continue following instructions until the tool returns `{done: true}`.
+5. Call `mcp__dobbe__pipeline_step` with results matching the provided schema.
+
+6. Continue until the tool returns `{done: true}`.
 
 ## Rules
 
-- **NEVER skip steps** -- always call back to get the next instruction.
+- **Respect the intent** of each step -- never skip steps.
+- **Use hints as guidance, not rigid steps.**
 - **Include ALL details** when submitting results: alert numbers, versions,
   severity, your risk assessment, and recommended action for each.
 - If the GitHub MCP is available, prefer it over `gh` CLI commands.

@@ -110,10 +110,11 @@ export class PipelineService {
           this.activeSessions.set(session_id, session);
           await this.storage.save(session);
 
+          const failState = failTerminal ? definition.states[failTerminal] : undefined;
           return {
             session_id,
             step: failTerminal ?? session.currentState,
-            instruction: (failTerminal && definition.states[failTerminal]?.instruction) ??
+            intent: failState?.intent ??
               `Maximum iterations (${definition.maxIterations}) reached. Manual intervention required.`,
             next: "pipeline_complete",
             done: true,
@@ -128,11 +129,9 @@ export class PipelineService {
         logger.info("Pipeline retrying", { session_id, iteration: session.iteration, max: definition.maxIterations });
 
         const retryStep = this.machine.getCurrentStep(session);
-        const iterationContext = `[Retry attempt ${session.iteration} of ${definition.maxIterations}]\n\n`;
         return {
           session_id,
           ...retryStep,
-          instruction: iterationContext + retryStep.instruction,
           iteration: session.iteration,
           feedback,
         };
@@ -153,12 +152,13 @@ export class PipelineService {
         return {
           session_id,
           step: session.currentState,
+          intent: `Retry: ${currentState.intent ?? session.currentState}`,
           instruction: [
             `Your result didn't match the expected format. Error: ${e.message}`,
             "",
             "Please try again with the correct format.",
             `Current step: ${session.currentState}`,
-            `Original instruction: ${currentState.instruction}`,
+            ...(currentState.intent ? [`Step intent: ${currentState.intent}`] : []),
           ].join("\n"),
           next: "pipeline_step",
         };

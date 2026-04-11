@@ -17,7 +17,8 @@ describe("Pipeline tool handlers", () => {
 
       expect(result.session_id).toBeTruthy();
       expect(result.step).toBe("scan");
-      expect(result.instruction).toContain("acme/web-app");
+      expect(result.intent).toBeTruthy();
+      expect(result.context?.repo).toBe("acme/web-app");
       expect(result.next).toBe("pipeline_step");
     });
 

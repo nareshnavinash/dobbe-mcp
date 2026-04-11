@@ -31,6 +31,27 @@ npm test
 5. Add tests in `tests/pipelines/your-pipeline.test.ts`
 6. If the pipeline has retry loops, include a `"failed"` terminal state
 
+### Declarative Step Model
+
+Every step uses declarative fields -- the MCP declares **what** needs to happen and Claude decides **how**.
+
+| Field | Purpose |
+|---|---|
+| `intent` | What this step achieves (required) |
+| `mode` | How Claude should approach it: `plan`, `act`, `gather`, or `report` |
+| `context` | Structured parameters (repo, severity, target files, etc.) |
+| `gatherFields` | For `gather` mode: data fields to collect with descriptions |
+| `hints` | Light domain tips (not rigid instructions) |
+
+**Do not use prescriptive instruction text.** Instead of telling Claude *how* to interact ("ask 3-5 questions in a numbered list"), set `mode: "gather"` with `gatherFields` describing what data to collect. Claude will use its best UX.
+
+**Choosing a mode:**
+
+- `plan` -- Deep analysis requiring strategy. Claude enters plan mode.
+- `act` -- Direct execution: run commands, edit files, create PRs.
+- `gather` -- Collect information from the user or codebase interactively.
+- `report` -- Synthesize prior step results into formatted output.
+
 ## Code Standards
 
 - All file I/O must be async (`fs/promises`)

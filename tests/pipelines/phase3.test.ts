@@ -28,12 +28,12 @@ describe("Phase 3 pipelines", () => {
 
     it("creates single PR pipeline", () => {
       const def = createReviewPostPipeline({ repo: "acme/web", prNumber: 42 });
-      expect(def.states.fetch.instruction).toContain("#42");
+      expect(def.states.fetch.intent).toContain("#42");
     });
 
     it("supports dry run", () => {
       const def = createReviewPostPipeline({ repo: "acme/web", dryRun: true });
-      expect(def.states.post.instruction).toContain("Dry run");
+      expect(def.states.post.intent).toContain("dry run");
     });
 
     it("walks through fetch → review → post → done", () => {
@@ -62,17 +62,14 @@ describe("Phase 3 pipelines", () => {
     it("creates pipeline with all checks", () => {
       const def = createAuditReportPipeline({ repo: "acme/web" });
       expect(def.name).toBe("audit-report");
-      expect(def.states.analyze.instruction).toContain("vuln");
-      expect(def.states.analyze.instruction).toContain("license");
-      expect(def.states.analyze.instruction).toContain("secrets");
-      expect(def.states.analyze.instruction).toContain("quality");
+      const ctx = def.states.analyze.context as Record<string, unknown>;
+      expect(ctx.checks).toEqual(["vuln", "license", "secrets", "quality"]);
     });
 
     it("respects custom checks", () => {
       const def = createAuditReportPipeline({ repo: "acme/web", checks: ["vuln", "secrets"] });
-      expect(def.states.analyze.instruction).toContain("vuln");
-      expect(def.states.analyze.instruction).toContain("secrets");
-      expect(def.states.analyze.instruction).not.toContain("License check");
+      const ctx = def.states.analyze.context as Record<string, unknown>;
+      expect(ctx.checks).toEqual(["vuln", "secrets"]);
     });
 
     it("walks through analyze → done", () => {
@@ -98,7 +95,8 @@ describe("Phase 3 pipelines", () => {
 
     it("includes ecosystem filter", () => {
       const def = createDepsAnalyzePipeline({ repo: "acme/web", ecosystem: "npm" });
-      expect(def.states.analyze.instruction).toContain("npm");
+      const ctx = def.states.analyze.context as Record<string, unknown>;
+      expect(ctx.ecosystem).toBe("npm");
     });
 
     it("walks through analyze → done", () => {
@@ -133,9 +131,10 @@ describe("Phase 3 pipelines", () => {
       expect(Object.keys(def.states)).not.toContain("pr");
     });
 
-    it("includes target files in instruction", () => {
+    it("includes target files in context", () => {
       const def = createTestGenPipeline({ repo: "acme/web", targetFiles: ["src/auth.ts", "src/db.ts"] });
-      expect(def.states.analyze.instruction).toContain("src/auth.ts");
+      const ctx = def.states.analyze.context as Record<string, unknown>;
+      expect(ctx.target_files).toEqual(["src/auth.ts", "src/db.ts"]);
     });
 
     it("verify has pass/fail transitions", () => {
@@ -169,17 +168,20 @@ describe("Phase 3 pipelines", () => {
     it("creates pipeline", () => {
       const def = createChangelogGenPipeline({ repo: "acme/web", fromRef: "v1.0.0" });
       expect(def.name).toBe("changelog-gen");
-      expect(def.states.analyze.instruction).toContain("v1.0.0");
+      const ctx = def.states.analyze.context as Record<string, unknown>;
+      expect(ctx.from_ref).toBe("v1.0.0");
     });
 
     it("includes toRef", () => {
       const def = createChangelogGenPipeline({ repo: "acme/web", fromRef: "v1.0.0", toRef: "v2.0.0" });
-      expect(def.states.analyze.instruction).toContain("v2.0.0");
+      const ctx = def.states.analyze.context as Record<string, unknown>;
+      expect(ctx.to_ref).toBe("v2.0.0");
     });
 
     it("includes PR fetching when requested", () => {
       const def = createChangelogGenPipeline({ repo: "acme/web", fromRef: "v1.0.0", includePrs: true });
-      expect(def.states.analyze.instruction).toContain("gh pr list");
+      const ctx = def.states.analyze.context as Record<string, unknown>;
+      expect(ctx.include_prs).toBe(true);
     });
 
     it("walks through analyze → done", () => {
@@ -219,10 +221,11 @@ describe("Phase 3 pipelines", () => {
       expect(def.states.verify.transitions.fail).toBe("apply");
     });
 
-    it("includes package names in instructions", () => {
+    it("includes package names in context", () => {
       const def = createMigrationPlanPipeline({ repo: "acme/web", fromPackage: "moment", toPackage: "dayjs" });
-      expect(def.states.plan.instruction).toContain("moment");
-      expect(def.states.plan.instruction).toContain("dayjs");
+      const ctx = def.states.plan.context as Record<string, unknown>;
+      expect(ctx.from_package).toBe("moment");
+      expect(ctx.to_package).toBe("dayjs");
     });
 
     it("walks through plan-only path", () => {
@@ -243,12 +246,13 @@ describe("Phase 3 pipelines", () => {
     it("creates pipeline", () => {
       const def = createMetricsDoraPipeline({ repo: "acme/web" });
       expect(def.name).toBe("metrics-dora");
-      expect(def.states.collect.instruction).toContain("DORA");
+      expect(def.states.collect.intent).toContain("DORA");
     });
 
     it("respects custom period", () => {
       const def = createMetricsDoraPipeline({ repo: "acme/web", period: "90d" });
-      expect(def.states.collect.instruction).toContain("90d");
+      const ctx = def.states.collect.context as Record<string, unknown>;
+      expect(ctx.period).toBe("90d");
     });
 
     it("walks through collect → done", () => {
@@ -271,7 +275,7 @@ describe("Phase 3 pipelines", () => {
     it("creates pipeline", () => {
       const def = createMetricsVelocityPipeline({ repo: "acme/web" });
       expect(def.name).toBe("metrics-velocity");
-      expect(def.states.collect.instruction).toContain("velocity");
+      expect(def.states.collect.intent).toContain("velocity");
     });
 
     it("walks through collect → done", () => {
@@ -293,12 +297,13 @@ describe("Phase 3 pipelines", () => {
     it("creates pipeline", () => {
       const def = createScanSecretsPipeline({ repo: "acme/web" });
       expect(def.name).toBe("scan-secrets");
-      expect(def.states.scan.instruction).toContain("secrets");
+      expect(def.states.scan.intent).toContain("secrets");
     });
 
     it("includes custom path", () => {
       const def = createScanSecretsPipeline({ repo: "acme/web", path: "src/" });
-      expect(def.states.scan.instruction).toContain("src/");
+      const ctx = def.states.scan.context as Record<string, unknown>;
+      expect(ctx.scan_path).toBe("src/");
     });
 
     it("walks through scan → done", () => {

@@ -6,6 +6,7 @@ import {
   schemaToHint,
   describeZodType,
   type PipelineDefinition,
+  type StepMode,
 } from "../../src/state/machine.js";
 
 // ─── Test fixtures ───
@@ -18,17 +19,17 @@ function simplePipeline(): PipelineDefinition {
     maxIterations: 3,
     states: {
       step1: {
-        instruction: "Do step 1",
+        intent: "Do step 1",
         schema: z.object({ value: z.string() }),
         transitions: { default: "step2" },
       },
       step2: {
-        instruction: "Do step 2",
+        intent: "Do step 2",
         schema: z.object({ count: z.number() }),
         transitions: { default: "done" },
       },
       done: {
-        instruction: "Pipeline complete.",
+        intent: "Pipeline complete.",
         schema: z.object({}),
         transitions: {},
       },
@@ -44,22 +45,58 @@ function branchingPipeline(): PipelineDefinition {
     maxIterations: 3,
     states: {
       check: {
-        instruction: "Check something",
+        intent: "Check something",
         schema: z.object({ passed: z.boolean() }),
         transitions: { pass: "success", fail: "retry", default: "retry" },
       },
       retry: {
-        instruction: "Retry the check",
+        intent: "Retry the check",
         schema: z.object({ passed: z.boolean() }),
         transitions: { pass: "success", fail: "failure", default: "failure" },
       },
       success: {
-        instruction: "Success!",
+        intent: "Success!",
         schema: z.object({}),
         transitions: {},
       },
       failure: {
-        instruction: "Failed.",
+        intent: "Failed.",
+        schema: z.object({}),
+        transitions: {},
+      },
+    },
+  };
+}
+
+function declarativePipeline(): PipelineDefinition {
+  return {
+    name: "test-declarative",
+    initialState: "gather",
+    terminalStates: ["done"],
+    maxIterations: 0,
+    states: {
+      gather: {
+        intent: "Understand the project context",
+        mode: "gather" as StepMode,
+        context: { role: "engineer" },
+        gatherFields: {
+          tech_stack: "Primary framework and language",
+          deploy_target: "Where this runs in production",
+        },
+        hints: ["Scan the codebase first before asking questions"],
+        schema: z.object({ tech_stack: z.string(), deploy_target: z.string() }),
+        transitions: { default: "analyze" },
+      },
+      analyze: {
+        intent: "Perform architecture analysis",
+        mode: "plan" as StepMode,
+        context: { focus: "scalability" },
+        hints: ["Reference specific files and line numbers"],
+        schema: z.object({ findings: z.array(z.string()), summary: z.string() }),
+        transitions: { default: "done" },
+      },
+      done: {
+        intent: "Analysis complete. Present findings to the user.",
         schema: z.object({}),
         transitions: {},
       },
@@ -157,13 +194,13 @@ describe("StateMachine", () => {
   });
 
   describe("getCurrentStep", () => {
-    it("returns instruction for current state", () => {
+    it("returns intent for current state", () => {
       machine.registerPipeline(simplePipeline());
       const session = machine.createSession("test-simple", "sess-1", {});
 
       const step = machine.getCurrentStep(session);
       expect(step.step).toBe("step1");
-      expect(step.instruction).toBe("Do step 1");
+      expect(step.intent).toBe("Do step 1");
       expect(step.next).toBe("pipeline_step");
     });
 
@@ -228,6 +265,95 @@ describe("StateMachine", () => {
     });
   });
 
+  describe("getCurrentStep (declarative)", () => {
+    it("returns intent and mode for declarative steps", () => {
+      machine.registerPipeline(declarativePipeline());
+      const session = machine.createSession("test-declarative", "sess-1", {});
+
+      const step = machine.getCurrentStep(session);
+      expect(step.intent).toBe("Understand the project context");
+      expect(step.mode).toBe("gather");
+      expect(step.context).toEqual({ role: "engineer" });
+      expect(step.gatherFields).toEqual({
+        tech_stack: "Primary framework and language",
+        deploy_target: "Where this runs in production",
+      });
+      expect(step.hints).toEqual(["Scan the codebase first before asking questions"]);
+      expect(step.instruction).toBeUndefined();
+    });
+
+    it("returns plan mode for analysis steps", () => {
+      machine.registerPipeline(declarativePipeline());
+      const session = machine.createSession("test-declarative", "sess-1", {});
+
+      machine.advance(session, { tech_stack: "React", deploy_target: "AWS" });
+      const step = machine.getCurrentStep(session);
+      expect(step.intent).toBe("Perform architecture analysis");
+      expect(step.mode).toBe("plan");
+      expect(step.context).toEqual({ focus: "scalability" });
+      expect(step.gatherFields).toBeUndefined();
+    });
+
+    it("omits empty hints array", () => {
+      machine.registerPipeline(declarativePipeline());
+      const session = machine.createSession("test-declarative", "sess-1", {});
+
+      // Advance to analyze, then to done
+      machine.advance(session, { tech_stack: "React", deploy_target: "AWS" });
+      machine.advance(session, { findings: ["good"], summary: "ok" });
+
+      const step = machine.getCurrentStep(session);
+      expect(step.hints).toBeUndefined(); // done state has no hints
+    });
+
+    it("walks through gather → plan → done with declarative steps", () => {
+      machine.registerPipeline(declarativePipeline());
+      const session = machine.createSession("test-declarative", "sess-1", {});
+
+      // Step 1: gather
+      const gatherStep = machine.getCurrentStep(session);
+      expect(gatherStep.mode).toBe("gather");
+      expect(gatherStep.next).toBe("pipeline_step");
+
+      // Step 2: advance to analyze
+      const analyzeStep = machine.advance(session, { tech_stack: "React", deploy_target: "AWS" });
+      expect(analyzeStep.mode).toBe("plan");
+      expect(analyzeStep.next).toBe("pipeline_step");
+
+      // Step 3: advance to done
+      const doneStep = machine.advance(session, { findings: ["solid arch"], summary: "looks good" });
+      expect(doneStep.done).toBe(true);
+      expect(doneStep.intent).toBe("Analysis complete. Present findings to the user.");
+    });
+  });
+
+  describe("validation (declarative)", () => {
+    it("accepts steps with intent only (no instruction)", () => {
+      expect(() => machine.registerPipeline(declarativePipeline())).not.toThrow();
+    });
+
+    it("rejects steps without intent", () => {
+      const bad: PipelineDefinition = {
+        name: "test-bad",
+        initialState: "s1",
+        terminalStates: ["done"],
+        maxIterations: 0,
+        states: {
+          s1: {
+            schema: z.object({}),
+            transitions: { default: "done" },
+          },
+          done: {
+            intent: "done",
+            schema: z.object({}),
+            transitions: {},
+          },
+        },
+      };
+      expect(() => machine.registerPipeline(bad)).toThrow(/intent/i);
+    });
+  });
+
   describe("advance", () => {
     it("advances to next state with valid result", () => {
       machine.registerPipeline(simplePipeline());
@@ -236,7 +362,7 @@ describe("StateMachine", () => {
       const next = machine.advance(session, { value: "hello" });
       expect(session.currentState).toBe("step2");
       expect(next.step).toBe("step2");
-      expect(next.instruction).toBe("Do step 2");
+      expect(next.intent).toBe("Do step 2");
     });
 
     it("stores step results", () => {
@@ -316,12 +442,12 @@ describe("StateMachine", () => {
         maxIterations: 0,
         states: {
           start: {
-            instruction: "Start",
+            intent: "Start",
             schema: z.object({ v: z.string() }),
             transitions: { specific: "end" },
           },
           end: {
-            instruction: "End",
+            intent: "End",
             schema: z.object({}),
             transitions: {},
           },

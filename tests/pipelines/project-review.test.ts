@@ -171,10 +171,11 @@ describe("Project Review Pipeline", () => {
       expect(() => machine.registerPipeline(def)).not.toThrow();
     });
 
-    it("synthesize instruction lists the selected roles", () => {
+    it("synthesize context lists the selected roles", () => {
       const def = createProjectReviewPipeline({ roles: ["pm", "qa"] });
-      expect(def.states.synthesize.instruction).toContain("Product Manager");
-      expect(def.states.synthesize.instruction).toContain("Quality Engineer");
+      const ctx = def.states.synthesize.context as Record<string, unknown>;
+      expect(ctx.roles_completed).toContain("Product Manager");
+      expect(ctx.roles_completed).toContain("Quality Engineer");
     });
   });
 

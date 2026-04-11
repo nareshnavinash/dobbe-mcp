@@ -7,7 +7,6 @@ import { z } from "zod";
  * Metrics Velocity pipeline: collect → done
  *
  * Both are single-pass data collection + computation.
- * No AI needed -- Claude runs gh commands and computes metrics.
  */
 
 export function createMetricsDoraPipeline(params: {
@@ -23,35 +22,22 @@ export function createMetricsDoraPipeline(params: {
     maxIterations: 0,
     states: {
       collect: {
-        instruction: [
-          `Compute DORA and velocity metrics for "${params.repo}" over the last ${period}.`,
-          "",
-          "Data to collect:",
-          `1. Merged PRs: gh pr list --repo ${params.repo} --state merged --json number,mergedAt,createdAt,additions,deletions,reviews --limit 200`,
-          `2. Releases: gh api /repos/${params.repo}/releases --paginate`,
-          "",
-          "Compute velocity metrics:",
-          "- Total PRs merged in period",
-          "- Average cycle time (created → merged) in hours",
-          "- Median cycle time in hours",
-          "- Median review time (first review) in hours",
-          "- Merge cadence (PRs per day)",
-          "",
-          "Compute DORA metrics:",
-          "- Deploy frequency (releases per day)",
-          "- Lead time for changes (commit → release) in hours",
-          "- Change failure rate (PRs with 'revert' or 'hotfix' / total PRs)",
-          "- MTTR (time between failure PR and its fix) in hours",
-          "",
-          `Period: ${period}`,
-          "",
-          "Return both velocity and DORA metrics with a summary.",
-        ].join("\n"),
+        intent: "Compute DORA and velocity metrics from merged PRs and releases",
+        mode: "act",
+        context: {
+          repo: params.repo,
+          period,
+        },
+        hints: [
+          "Fetch merged PRs and releases from GitHub",
+          "Compute velocity: cycle time, review time, merge cadence",
+          "Compute DORA: deploy frequency, lead time, change failure rate, MTTR",
+        ],
         schema: DoraReportSchema,
         transitions: { default: "done" },
       },
       done: {
-        instruction: "Metrics collection complete.",
+        intent: "Metrics collection complete.",
         schema: z.object({}),
         transitions: {},
       },
@@ -72,27 +58,21 @@ export function createMetricsVelocityPipeline(params: {
     maxIterations: 0,
     states: {
       collect: {
-        instruction: [
-          `Compute PR velocity metrics for "${params.repo}" over the last ${period}.`,
-          "",
-          `Fetch merged PRs: gh pr list --repo ${params.repo} --state merged --json number,mergedAt,createdAt,additions,deletions,reviews --limit 200`,
-          "",
-          "Compute:",
-          "- Total PRs merged in period",
-          "- Average cycle time (created → merged) in hours",
-          "- Median cycle time in hours",
-          "- Median review time in hours",
-          "- Merge cadence (PRs per day)",
-          "",
-          `Period: ${period}`,
-          "",
-          "Return velocity metrics with a summary.",
-        ].join("\n"),
+        intent: "Compute PR velocity metrics from merged pull requests",
+        mode: "act",
+        context: {
+          repo: params.repo,
+          period,
+        },
+        hints: [
+          "Fetch merged PRs from GitHub",
+          "Compute: total merged, average/median cycle time, review time, merge cadence",
+        ],
         schema: VelocityReportSchema,
         transitions: { default: "done" },
       },
       done: {
-        instruction: "Velocity metrics collection complete.",
+        intent: "Velocity metrics collection complete.",
         schema: z.object({}),
         transitions: {},
       },

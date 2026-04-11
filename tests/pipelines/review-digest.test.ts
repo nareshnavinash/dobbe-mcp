@@ -28,7 +28,7 @@ describe("review-digest pipeline", () => {
 
     it("batch mode mentions 'all open pull requests'", () => {
       const def = createReviewDigestPipeline({ repo: "acme/web-app" });
-      expect(def.states.fetch.instruction).toContain("all open pull requests");
+      expect(def.states.fetch.intent).toContain("open pull requests");
     });
 
     it("single PR mode mentions the PR number", () => {
@@ -36,7 +36,7 @@ describe("review-digest pipeline", () => {
         repo: "acme/web-app",
         prNumber: 42,
       });
-      expect(def.states.fetch.instruction).toContain("#42");
+      expect(def.states.fetch.intent).toContain("#42");
     });
 
     it("includes skip filters in batch mode", () => {
@@ -46,9 +46,10 @@ describe("review-digest pipeline", () => {
         skipLabels: ["wontfix", "docs"],
         skipAuthors: ["dependabot"],
       });
-      expect(def.states.fetch.instruction).toContain("Draft PRs");
-      expect(def.states.fetch.instruction).toContain("wontfix");
-      expect(def.states.fetch.instruction).toContain("dependabot");
+      const ctx = def.states.fetch.context as Record<string, unknown>;
+      expect(ctx.skip_drafts).toBe(true);
+      expect(ctx.skip_labels).toEqual(["wontfix", "docs"]);
+      expect(ctx.skip_authors).toEqual(["dependabot"]);
     });
 
     it("omits skip filters when not provided", () => {
@@ -56,12 +57,14 @@ describe("review-digest pipeline", () => {
         repo: "acme/web-app",
         skipDrafts: false,
       });
-      expect(def.states.fetch.instruction).not.toContain("Draft PRs");
+      const ctx = def.states.fetch.context as Record<string, unknown>;
+      expect(ctx.skip_drafts).toBe(false);
     });
 
-    it("includes repo in review instruction", () => {
+    it("includes repo in review context", () => {
       const def = createReviewDigestPipeline({ repo: "acme/web-app" });
-      expect(def.states.review.instruction).toContain("acme/web-app");
+      const ctx = def.states.review.context as Record<string, unknown>;
+      expect(ctx.repo).toBe("acme/web-app");
     });
   });
 

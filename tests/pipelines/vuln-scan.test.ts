@@ -23,22 +23,24 @@ describe("vuln-scan pipeline", () => {
       expect(def.maxIterations).toBe(0);
     });
 
-    it("includes repo in scan instruction", () => {
+    it("includes repo in scan context", () => {
       const def = createVulnScanPipeline({
         repo: "acme/web-app",
         severity: "critical,high",
       });
 
-      expect(def.states.scan.instruction).toContain("acme/web-app");
+      const ctx = def.states.scan.context as Record<string, unknown>;
+      expect(ctx.repo).toBe("acme/web-app");
     });
 
-    it("includes severity filter in instruction", () => {
+    it("includes severity filter in context", () => {
       const def = createVulnScanPipeline({
         repo: "acme/web-app",
         severity: "critical",
       });
 
-      expect(def.states.scan.instruction).toContain("critical");
+      const ctx = def.states.scan.context as Record<string, unknown>;
+      expect(ctx.severity).toBe("critical");
     });
 
     it("defaults severity to all levels", () => {
@@ -47,7 +49,8 @@ describe("vuln-scan pipeline", () => {
         severity: "",
       });
 
-      expect(def.states.scan.instruction).toContain("critical,high,medium,low");
+      const ctx = def.states.scan.context as Record<string, unknown>;
+      expect(ctx.severity).toBe("critical,high,medium,low");
     });
 
     it("has scan, report, and done states", () => {

@@ -160,7 +160,7 @@ describe("vuln-resolve retry loop (integration)", () => {
 
       expect(failed.done).toBe(true);
       expect(failed.step).toBe("failed");
-      expect(failed.instruction).toContain("maximum iterations");
+      expect(failed.intent).toContain("maximum iterations");
     });
   });
 

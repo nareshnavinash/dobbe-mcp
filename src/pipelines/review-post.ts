@@ -22,47 +22,51 @@ export function createReviewPostPipeline(params: {
     maxIterations: 0,
     states: {
       fetch: {
-        instruction: isSingle
-          ? [
-              `Fetch PR #${params.prNumber} from "${params.repo}".`,
-              `  gh pr view ${params.prNumber} --repo ${params.repo} --json number,title,author,body,labels,headRefOid`,
-              `  gh pr diff ${params.prNumber} --repo ${params.repo}`,
-              "Return the PR info.",
-            ].join("\n")
-          : [
-              `Fetch all open PRs from "${params.repo}".`,
-              `  gh pr list --repo ${params.repo} --state open --json number,title,author,body,labels,headRefOid --limit 20`,
-              "Return the PR list.",
-            ].join("\n"),
+        intent: isSingle
+          ? `Fetch PR #${params.prNumber} details and diff`
+          : "Fetch all open pull requests",
+        mode: "act",
+        context: {
+          repo: params.repo,
+          ...(isSingle ? { pr_number: params.prNumber } : {}),
+        },
+        hints: [
+          "Prefer GitHub MCP tools over CLI when available",
+        ],
         schema: PrListSchema,
         transitions: { default: "review" },
       },
       review: {
-        instruction: [
-          "Perform a deep code review of each PR.",
-          "For each PR: fetch diff, read source files, analyze for security/testing/breaking/quality.",
-          "Assign risk level and approval recommendation.",
-          "Prioritize by risk level, then age.",
-        ].join("\n"),
+        intent: "Perform deep code review of each PR analyzing security, testing, breaking changes, and quality",
+        mode: "plan",
+        context: { repo: params.repo },
+        hints: [
+          "Assign risk level and approval recommendation for each PR",
+          "Prioritize by risk level, then age",
+        ],
         schema: ReviewDigestSchema,
         transitions: { default: "post" },
       },
       post: {
-        instruction: dryRun
-          ? "Dry run mode -- do NOT post to GitHub. Return a summary of what would be posted."
-          : [
-              "Post review comments to each PR on GitHub.",
-              "For each PR review:",
-              `  gh pr review <number> --repo ${params.repo} --comment --body "<formatted review>"`,
-              "Format the review as markdown with concerns, recommendations, and risk level.",
-              "Skip any PRs that already have a dobbe review comment.",
-              "Return the list of posted and skipped PRs.",
-            ].join("\n"),
+        intent: dryRun
+          ? "Summarize what review comments would be posted (dry run -- do NOT post)"
+          : "Post review comments to each PR on GitHub",
+        mode: "act",
+        context: {
+          repo: params.repo,
+          dry_run: dryRun,
+        },
+        hints: [
+          ...(dryRun ? [] : [
+            "Format reviews as markdown with concerns, recommendations, and risk level",
+            "Skip any PRs that already have a dobbe review comment",
+          ]),
+        ],
         schema: PostResultSchema,
         transitions: { default: "done" },
       },
       done: {
-        instruction: "Review posting complete.",
+        intent: "Review posting complete.",
         schema: z.object({}),
         transitions: {},
       },

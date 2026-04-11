@@ -12,8 +12,6 @@ export function createScanSecretsPipeline(params: {
   repo: string;
   path?: string;
 }): PipelineDefinition {
-  const scanPath = params.path || ".";
-
   return {
     name: "scan-secrets",
     initialState: "scan",
@@ -21,36 +19,23 @@ export function createScanSecretsPipeline(params: {
     maxIterations: 0,
     states: {
       scan: {
-        instruction: [
-          `Scan "${params.repo}" for hardcoded secrets and credentials.`,
-          "",
-          `Scan path: ${scanPath}`,
-          "",
-          "Search for these patterns using Grep:",
-          "- API keys: patterns like AKIA*, sk-*, ghp_*, xoxb-*, Bearer <token>",
-          "- Passwords: password=, passwd=, pwd=, secret= with actual values",
-          "- Private keys: BEGIN RSA PRIVATE KEY, BEGIN EC PRIVATE KEY",
-          "- Connection strings: postgresql://, mongodb://, redis:// with credentials",
-          "- AWS credentials: aws_access_key_id, aws_secret_access_key",
-          "- Generic tokens: token=, auth=, apikey= with non-placeholder values",
-          "",
-          "Check these files specifically:",
-          "- .env, .env.*, *.env",
-          "- config files: *.yml, *.yaml, *.json, *.toml, *.ini",
-          "- CI/CD: .github/workflows/*, .gitlab-ci.yml, Jenkinsfile",
-          "- Docker: Dockerfile, docker-compose.yml",
-          "",
-          "For each finding:",
-          "- Assess severity (critical for actual secrets, low for test data/placeholders)",
-          "- Determine if it's a false positive (example values, test fixtures, env var references)",
-          "",
-          "Return all findings with severity and false positive assessment.",
-        ].join("\n"),
+        intent: "Scan repository for hardcoded secrets, API keys, tokens, and credentials",
+        mode: "act",
+        context: {
+          repo: params.repo,
+          scan_path: params.path || ".",
+        },
+        hints: [
+          "Look for API keys (AKIA*, sk-*, ghp_*, xoxb-*), passwords, private keys, and connection strings",
+          "Check .env files, config files, CI/CD configs, and Dockerfiles",
+          "Assess severity: critical for real secrets, low for test data/placeholders",
+          "Filter false positives: example values, test fixtures, env var references",
+        ],
         schema: SecretsResultSchema,
         transitions: { default: "done" },
       },
       done: {
-        instruction: "Secrets scan complete.",
+        intent: "Secrets scan complete.",
         schema: z.object({}),
         transitions: {},
       },

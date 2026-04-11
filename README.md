@@ -7,7 +7,7 @@
   <a href="https://www.npmjs.com/package/dobbe"><img src="https://img.shields.io/npm/v/dobbe.svg" alt="npm"></a>
   <a href="https://github.com/nareshnavinash/dobbe-mcp/blob/main/LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="License"></a>
   <a href="https://nodejs.org"><img src="https://img.shields.io/badge/node-%3E%3D18-brightgreen.svg" alt="Node.js"></a>
-  <img src="https://img.shields.io/badge/tests-266%20passed-brightgreen" alt="Tests">
+  <img src="https://img.shields.io/badge/tests-373%20passed-brightgreen" alt="Tests">
   <img src="https://img.shields.io/badge/coverage-94%25-brightgreen" alt="Coverage">
 </p>
 
@@ -31,7 +31,7 @@ $ /dobbe-vuln-resolve
 
 - **45 minutes to 3 minutes.** A typical Dependabot triage: open GitHub, read 12 alerts, figure out which matter, checkout a branch, upgrade packages, run tests, debug failures, run tests again, push, create a PR. With dobbe: type `/dobbe-vuln-resolve`. The pipeline handles all steps including up to 3 retry loops if tests break.
 
-- **One command. No config files.** `npx dobbe install` registers the MCP server and 16 slash commands. No YAML. No dashboard. No SaaS signup. Uninstall with `npx dobbe uninstall`.
+- **One command. No config files.** `npx dobbe install` registers the MCP server and 24 slash commands. No YAML. No dashboard. No SaaS signup. Uninstall with `npx dobbe uninstall`.
 
 ### Before vs. After
 
@@ -64,7 +64,7 @@ npx dobbe uninstall
 
 ## How It Works
 
-The MCP server runs a finite state machine. Claude executes one step at a time, submits structured results, and the server decides what happens next.
+The MCP server runs a finite state machine. Each step declares **what** needs to happen (intent, mode, context) and Claude decides **how** to accomplish it. Results are validated with Zod schemas before advancing.
 
 ```mermaid
 graph LR
@@ -78,7 +78,7 @@ graph LR
     D -->|max retries| H((failed))
 ```
 
-> **The server controls the workflow, not the prompt.** If Claude submits incomplete results, the server rejects them (Zod validation). If tests fail at the verify step, the server loops back to `fix` with the error output injected as feedback -- up to 3 iterations. No prompt engineering. No hoping Claude remembers to retry.
+> **The server controls the workflow, not the prompt.** Each step has a declarative `intent` (what to do), `mode` (plan, act, gather, or report), and `context` (structured parameters). Claude uses its best tools and UX for the job. If results fail Zod validation, the server rejects them. If tests fail at the verify step, the server loops back to `fix` with the error output injected as feedback -- up to 3 iterations.
 
 ## Commands
 
@@ -96,6 +96,21 @@ graph LR
 | `/dobbe-changelog-gen` | Git history to categorized release notes | analyze -> done | -- |
 | `/dobbe-migration-plan` | Plan + execute dependency migrations | plan -> apply -> verify -> commit -> pr -> done | 3x |
 | `/dobbe-incident-triage` | Sentry issue triage with AI root cause analysis | fetch -> triage -> done | -- |
+
+### Multi-Perspective Reviews
+
+| Command | What it does |
+|---|---|
+| `/dobbe-review-as-pm` | Product Manager review -- feature gaps, prioritization, roadmap |
+| `/dobbe-review-as-engineer` | Engineering review -- architecture, code quality, tech debt |
+| `/dobbe-review-as-designer` | Design review -- UX, accessibility, interaction patterns |
+| `/dobbe-review-as-qa` | QA review -- test coverage, edge cases, reliability |
+| `/dobbe-review-as-test-architect` | Test architecture review -- strategy, frameworks, coverage |
+| `/dobbe-review-as-marketing` | Marketing review -- positioning, messaging, go-to-market |
+| `/dobbe-review-as-sales` | Sales review -- competitive positioning, pricing, objections |
+| `/dobbe-project-review` | Run all 7 perspectives + synthesized summary |
+
+Each review pipeline uses `gather` mode to understand the project interactively, then `plan` mode for deep analysis.
 
 ### Metrics & Scanning
 
@@ -142,9 +157,10 @@ Claude Code (executor)
     v
 dobbe MCP Server (state machine controller)
     |
-    +-- 13 Pipeline definitions
-    |   +-- Each pipeline: states, transitions, Zod schemas, instructions
+    +-- 21 Pipeline definitions
+    |   +-- Each pipeline: states, transitions, Zod schemas, intent/mode/context/hints
     |   +-- 3 pipelines with retry loops (vuln-resolve, test-gen, migration-plan)
+    |   +-- 7 role-based review pipelines + 1 aggregate project-review
     |
     +-- State machine engine (generic FSM)
     |   +-- Zod validation per step
@@ -167,8 +183,8 @@ dobbe MCP Server (state machine controller)
 
 ## Built to Ship
 
-- **266 tests** with **94% coverage** -- every pipeline path is tested
-- **13 pipelines** with **Zod validation** at every state transition
+- **373 tests** with **94% coverage** -- every pipeline path is tested
+- **21 pipelines** with **Zod validation** at every state transition
 - **3 retry pipelines** with automatic feedback injection
 - **Zero global mutable state** -- `PipelineService` is fully isolated and testable
 - **Atomic file writes** -- crash-safe session persistence via write-to-temp + rename
@@ -210,7 +226,7 @@ review = 300
 git clone https://github.com/nareshnavinash/dobbe-mcp.git
 cd dobbe-mcp
 npm install
-npm test              # 266 tests
+npm test              # 373 tests
 npm run test:coverage # 94%+ coverage
 npm run build
 npm run lint

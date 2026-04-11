@@ -30,53 +30,39 @@ export function createTestGenPipeline(params: {
     maxIterations: maxIter,
     states: {
       analyze: {
-        instruction: [
-          `Analyze test coverage gaps for "${params.repo}".`,
-          "",
-          ...(params.targetFiles?.length
-            ? [`Focus on these files: ${params.targetFiles.join(", ")}`]
-            : [
-                "Steps:",
-                "1. Use Glob to find source files and test files",
-                "2. Identify source files that have no corresponding test file",
-                "3. For files with tests, identify untested functions/methods",
-                "4. Detect the test framework in use (pytest, jest, mocha, go test, etc.)",
-              ]),
-          "",
-          "Return the coverage gaps and detected test framework.",
-        ].join("\n"),
+        intent: "Analyze test coverage gaps and detect the test framework in use",
+        mode: "act",
+        context: {
+          repo: params.repo,
+          ...(params.targetFiles?.length ? { target_files: params.targetFiles } : {}),
+        },
+        hints: [
+          "Identify source files with no corresponding test file",
+          "For files with tests, identify untested functions/methods",
+          "Detect the test framework (pytest, jest, mocha, go test, etc.)",
+        ],
         schema: TestGenAnalyzeSchema,
         transitions: { default: "generate" },
       },
       generate: {
-        instruction: [
-          "Generate tests for the identified coverage gaps.",
-          "",
-          "Rules:",
-          "- Write complete, runnable test files (not snippets)",
-          "- Match the project's existing test style and conventions",
-          "- Include proper imports, setup/teardown, and fixtures",
-          "- Cover happy paths, edge cases, and error paths",
-          "- Use the detected test framework",
-          "- Place test files in the project's test directory",
-          "",
-          "Return the list of generated test files.",
-        ].join("\n"),
+        intent: "Generate complete, runnable tests for the identified coverage gaps",
+        mode: "act",
+        hints: [
+          "Write complete test files, not snippets",
+          "Match the project's existing test style and conventions",
+          "Cover happy paths, edge cases, and error paths",
+          "Place test files in the project's test directory",
+        ],
         schema: TestGenResultSchema,
         transitions: { default: "verify" },
       },
       verify: {
-        instruction: [
-          "Run the test suite to verify the generated tests.",
-          "",
-          "Steps:",
-          "1. Run the project's test command (npm test, pytest, go test, etc.)",
-          "2. Check that all new tests pass",
-          "3. Check for syntax errors, import errors, or failures",
-          "",
-          "Set passed=true ONLY if all tests pass (both new and existing).",
-          "If any fail, provide detailed feedback for the next generation attempt.",
-        ].join("\n"),
+        intent: "Run the test suite to verify all generated tests pass",
+        mode: "act",
+        hints: [
+          "Set passed=true ONLY if all tests pass (both new and existing)",
+          "If any fail, provide detailed feedback for the next generation attempt",
+        ],
         schema: TestGenVerifySchema,
         transitions: {
           pass: createPr ? "commit" : "done",
@@ -87,34 +73,33 @@ export function createTestGenPipeline(params: {
       ...(createPr
         ? {
             commit: {
-              instruction: [
-                "Commit the generated tests.",
-                "  git checkout -b test/dobbe-coverage-$(date +%Y-%m-%d)",
-                "  git add -A",
-                '  git commit -m "test: add generated tests for coverage gaps"',
-              ].join("\n"),
+              intent: "Commit the generated tests to a new branch",
+              mode: "act",
+              context: {
+                branch_pattern: "test/dobbe-coverage-{date}",
+                commit_message: "test: add generated tests for coverage gaps",
+              },
               schema: CommitResultSchema,
               transitions: { default: "pr" },
             },
             pr: {
-              instruction: [
-                "Create a pull request with the generated tests.",
-                "  git push -u origin HEAD",
-                '  gh pr create --title "test: improve coverage" --body "<summary of generated tests>"',
-                "Report the PR URL.",
-              ].join("\n"),
+              intent: "Create a pull request with the generated tests",
+              mode: "act",
+              context: {
+                pr_title: "test: improve coverage",
+              },
               schema: PrResultSchema,
               transitions: { default: "done" },
             },
           }
         : {}),
       done: {
-        instruction: "Test generation complete.",
+        intent: "Test generation complete.",
         schema: z.object({}),
         transitions: {},
       },
       failed: {
-        instruction: "Test generation failed after maximum iterations. Generated tests could not pass verification.",
+        intent: "Test generation failed after maximum iterations. Generated tests could not pass verification.",
         schema: z.object({}),
         transitions: {},
       },

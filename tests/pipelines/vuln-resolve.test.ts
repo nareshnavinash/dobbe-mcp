@@ -47,21 +47,23 @@ describe("vuln-resolve pipeline", () => {
       expect(states).toContain("failed");
     });
 
-    it("includes repo in scan instruction", () => {
+    it("includes repo in scan context", () => {
       const def = createVulnResolvePipeline({
         repo: "acme/web-app",
         severity: "critical",
       });
-      expect(def.states.scan.instruction).toContain("acme/web-app");
+      const ctx = def.states.scan.context as Record<string, unknown>;
+      expect(ctx.repo).toBe("acme/web-app");
     });
 
-    it("includes baseBranch in verify instruction", () => {
+    it("includes baseBranch in verify context", () => {
       const def = createVulnResolvePipeline({
         repo: "acme/web-app",
         severity: "critical",
         baseBranch: "develop",
       });
-      expect(def.states.verify.instruction).toContain("develop");
+      const ctx = def.states.verify.context as Record<string, unknown>;
+      expect(ctx.base_branch).toBe("develop");
     });
 
     it("defaults baseBranch to main", () => {
@@ -69,8 +71,10 @@ describe("vuln-resolve pipeline", () => {
         repo: "acme/web-app",
         severity: "critical",
       });
-      expect(def.states.verify.instruction).toContain("main");
-      expect(def.states.pr.instruction).toContain("main");
+      const verifyCtx = def.states.verify.context as Record<string, unknown>;
+      const prCtx = def.states.pr.context as Record<string, unknown>;
+      expect(verifyCtx.base_branch).toBe("main");
+      expect(prCtx.base_branch).toBe("main");
     });
 
     it("verify has pass and fail transitions", () => {

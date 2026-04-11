@@ -11,10 +11,6 @@ export function createDepsAnalyzePipeline(params: {
   repo: string;
   ecosystem?: string;
 }): PipelineDefinition {
-  const ecosystemFilter = params.ecosystem
-    ? `\nFocus on ${params.ecosystem} ecosystem only.`
-    : "";
-
   return {
     name: "deps-analyze",
     initialState: "analyze",
@@ -22,32 +18,22 @@ export function createDepsAnalyzePipeline(params: {
     maxIterations: 0,
     states: {
       analyze: {
-        instruction: [
-          `Analyze dependency health for "${params.repo}".${ecosystemFilter}`,
-          "",
-          "Steps:",
-          "1. Find dependency manifests: package.json, requirements.txt, pyproject.toml,",
-          "   go.mod, Cargo.toml, Gemfile, pom.xml, build.gradle",
-          "",
-          "2. For each declared dependency:",
-          "   - Check if it's imported anywhere in source code (Grep for imports/requires)",
-          "   - Determine current vs latest version (if possible)",
-          "   - Assess maintenance health: actively maintained, outdated, unmaintained, deprecated",
-          "   - Check license type and compliance risk",
-          "",
-          "3. Flag:",
-          "   - Unused dependencies (declared but never imported)",
-          "   - Outdated packages (more than 2 major versions behind)",
-          "   - Unmaintained packages (no commits in 2+ years)",
-          "   - License risks (copyleft in commercial projects)",
-          "",
-          "Return findings for all dependencies with recommendations.",
-        ].join("\n"),
+        intent: "Analyze dependency health across all package manifests",
+        mode: "act",
+        context: {
+          repo: params.repo,
+          ...(params.ecosystem ? { ecosystem: params.ecosystem } : {}),
+        },
+        hints: [
+          "Check if each dependency is actually imported in source code",
+          "Flag unused, outdated (2+ major versions behind), and unmaintained (2+ years) packages",
+          "Assess license compliance risk (copyleft in commercial projects)",
+        ],
         schema: DepsReportSchema,
         transitions: { default: "done" },
       },
       done: {
-        instruction: "Dependency analysis complete.",
+        intent: "Dependency analysis complete.",
         schema: z.object({}),
         transitions: {},
       },

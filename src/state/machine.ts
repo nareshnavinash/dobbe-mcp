@@ -4,13 +4,27 @@ import { z } from "zod";
  * Generic finite state machine for pipeline orchestration.
  *
  * Each pipeline defines its own states, transitions, and per-step
- * instructions/schemas. The machine enforces valid transitions and
+ * intent/schemas. The machine enforces valid transitions and
  * validates step results against Zod schemas before advancing.
  */
 
+/** Interaction mode hint for Claude. */
+export type StepMode = "plan" | "act" | "gather" | "report";
+
 export interface StepDefinition {
-  /** Instruction text returned to Claude for this step. */
-  instruction: string;
+  // ─── Declarative fields ───
+
+  /** What this step should accomplish (the WHAT, not HOW). */
+  intent?: string;
+  /** Interaction mode hint for Claude. */
+  mode?: StepMode;
+  /** Structured parameters for this step. */
+  context?: Record<string, unknown>;
+  /** When mode="gather", defines the data fields to collect (key → description). */
+  gatherFields?: Record<string, string>;
+  /** Light domain hints Claude can't infer on its own. */
+  hints?: string[];
+
   /** Zod schema for validating the result Claude submits for this step. */
   schema: z.ZodType;
   /** Which states this step can transition to (keyed by outcome). */
@@ -58,8 +72,27 @@ export interface PipelineSession {
 export interface StepResponse {
   /** Current step name. */
   step: string;
-  /** Instruction for Claude to follow. */
-  instruction: string;
+
+  // ─── Declarative fields ───
+
+  /** What this step should accomplish. */
+  intent?: string;
+  /** Interaction mode hint. */
+  mode?: StepMode;
+  /** Structured context/parameters for this step. */
+  context?: Record<string, unknown>;
+  /** Fields to gather when mode="gather". */
+  gatherFields?: Record<string, string>;
+  /** Domain-specific hints. */
+  hints?: string[];
+
+  // ─── Legacy field ───
+
+  /** @deprecated Prescriptive instruction text. Present during migration. */
+  instruction?: string;
+
+  // ─── Existing fields ───
+
   /** Name of the next MCP tool Claude should call. */
   next: string;
   /** JSON schema hint for the expected result shape (serialized). */
@@ -166,9 +199,15 @@ export class StateMachine {
 
     const response: StepResponse = {
       step: session.currentState,
-      instruction: state.instruction,
       next: isTerminal ? "pipeline_complete" : "pipeline_step",
     };
+
+    // Declarative fields
+    if (state.intent) response.intent = state.intent;
+    if (state.mode) response.mode = state.mode;
+    if (state.context) response.context = state.context;
+    if (state.gatherFields) response.gatherFields = state.gatherFields;
+    if (state.hints?.length) response.hints = state.hints;
 
     if (session.iteration > 1) {
       response.iteration = session.iteration;
@@ -238,7 +277,7 @@ export class StateMachine {
       const terminalState = def.states[nextState];
       return {
         step: nextState,
-        instruction: terminalState?.instruction ?? "Pipeline complete.",
+        intent: terminalState?.intent ?? "Pipeline complete.",
         next: "pipeline_complete",
         done: true,
       };
@@ -283,6 +322,16 @@ export class StateMachine {
       if (!def.states[ts]) {
         throw new PipelineError(
           `Terminal state "${ts}" not found in states`,
+          "INVALID_DEFINITION",
+        );
+      }
+    }
+
+    // Every state must have intent
+    for (const [stateName, state] of Object.entries(def.states)) {
+      if (!state.intent) {
+        throw new PipelineError(
+          `State "${stateName}" must have "intent"`,
           "INVALID_DEFINITION",
         );
       }

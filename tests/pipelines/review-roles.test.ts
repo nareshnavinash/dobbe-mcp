@@ -200,14 +200,20 @@ describe("Role-Based Review Pipelines", () => {
           expect(def.states.done.transitions).toEqual({});
         });
 
-        it(`discover instruction mentions ${keyword}`, () => {
+        it(`discover intent/context references ${keyword}`, () => {
           const def = factory();
-          expect(def.states.discover.instruction).toContain(keyword);
+          const hasKeyword =
+            def.states.discover.intent?.includes(keyword) ||
+            (def.states.discover.context as Record<string, unknown>)?.roleTitle === keyword;
+          expect(hasKeyword).toBe(true);
         });
 
-        it(`analyze instruction mentions ${keyword}`, () => {
+        it(`analyze intent/context references ${keyword}`, () => {
           const def = factory();
-          expect(def.states.analyze.instruction).toContain(keyword);
+          const hasKeyword =
+            def.states.analyze.intent?.includes(keyword) ||
+            (def.states.analyze.context as Record<string, unknown>)?.roleTitle === keyword;
+          expect(hasKeyword).toBe(true);
         });
 
         it("registers without error in StateMachine", () => {

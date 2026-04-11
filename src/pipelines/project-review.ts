@@ -7,8 +7,8 @@ import { z } from "zod";
 import {
   ROLE_CONFIGS,
   ALL_ROLE_KEYS,
-  buildDiscoverInstruction,
-  buildAnalyzeInstruction,
+  buildDiscoverStep,
+  buildAnalyzeStep,
 } from "./review-roles.js";
 
 /**
@@ -48,14 +48,12 @@ export function createProjectReviewPipeline(params: {
     const nextState = nextRole ? `${nextRole}_discover` : "synthesize";
 
     states[discoverKey] = {
-      instruction: buildDiscoverInstruction(config),
-      schema: DiscoveryResultSchema,
+      ...buildDiscoverStep(config),
       transitions: { default: analyzeKey },
     };
 
     states[analyzeKey] = {
-      instruction: buildAnalyzeInstruction(config),
-      schema: config.analysisSchema,
+      ...buildAnalyzeStep(config),
       transitions: { default: nextState },
     };
   }
@@ -66,28 +64,24 @@ export function createProjectReviewPipeline(params: {
     .join(", ");
 
   states.synthesize = {
-    instruction: [
-      "Synthesize all completed role-based reviews into an executive summary.",
-      "",
-      `Roles completed: ${roleList}`,
-      "",
-      "Draw from each role's analysis to:",
-      "1. Identify cross-cutting themes that multiple roles flagged",
-      "2. Highlight the top 3-5 priorities across all perspectives",
-      "3. Note any conflicting recommendations between roles and suggest resolution",
-      "4. Identify quick wins that multiple roles agree on",
-      "",
-      "Produce a comprehensive executive summary in markdown that a team lead",
-      "could use to prioritize the next sprint.",
-      "",
-      "Return the structured summary matching the schema.",
-    ].join("\n"),
+    intent: "Synthesize all completed role-based reviews into an executive summary",
+    mode: "report",
+    context: {
+      roles_completed: roleList,
+    },
+    hints: [
+      "Identify cross-cutting themes that multiple roles flagged",
+      "Highlight the top 3-5 priorities across all perspectives",
+      "Note conflicting recommendations between roles and suggest resolution",
+      "Identify quick wins that multiple roles agree on",
+      "Produce a summary a team lead could use to prioritize the next sprint",
+    ],
     schema: ProjectReviewSummarySchema,
     transitions: { default: "done" },
   };
 
   states.done = {
-    instruction: "Project review complete. Present the executive summary to the user.",
+    intent: "Project review complete. Present the executive summary to the user.",
     schema: z.object({}),
     transitions: {},
   };

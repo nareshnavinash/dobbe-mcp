@@ -3,6 +3,25 @@
 All notable changes to dobbe are documented here.
 Format based on [Keep a Changelog](https://keepachangelog.com/).
 
+## [0.3.0] - 2026-04-11
+
+### Changed
+- **Declarative intent-based pipeline steps** -- replaced prescriptive `instruction` strings with `intent`, `mode`, `context`, `gatherFields`, and `hints` fields. The MCP server now declares WHAT needs to happen; Claude decides HOW to interact with the user.
+- 4 step modes: `plan` (enter plan mode for analysis), `act` (execute directly), `gather` (collect data from user/codebase), `report` (synthesize formatted output)
+- All 21 pipeline definitions converted to declarative model
+- All 24 SKILL.md files updated with mode-based interaction guidance
+- `review-roles.ts` discover/analyze instruction builders replaced with `buildDiscoverStep()`/`buildAnalyzeStep()` returning declarative step definitions
+- `StepDefinition` and `StepResponse` interfaces updated; `instruction` field removed
+- `validateDefinition()` now requires `intent` on every state
+- Retry path simplified: iteration/feedback passed as fields instead of prepended to instruction text
+
+### Added
+- 8 multi-perspective review pipelines: `review-as-pm`, `review-as-engineer`, `review-as-designer`, `review-as-qa`, `review-as-test-architect`, `review-as-marketing`, `review-as-sales`, `project-review`
+- `RoleConfig` system in `review-roles.ts` with shared `discoverFields` and `analyzeFocus` per role
+- `StepMode` type (`plan | act | gather | report`)
+- `gatherFields` for gather-mode steps (structured field descriptions for data collection)
+- 107 new tests (266 -> 373)
+
 ## [0.1.0] - 2026-04-09
 
 ### Added
@@ -24,7 +43,7 @@ Format based on [Keep a Changelog](https://keepachangelog.com/).
 - Centralized `paths.ts` module (single source for all `~/.dobbe/` paths)
 - `pipeline_list_sessions` tool to list all sessions
 - `pipeline_abort` tool to cancel in-progress pipelines
-- Retry iteration context in instructions (`[Retry attempt 2 of 3]`)
+- Retry iteration context in step responses (`[Retry attempt 2 of 3]`)
 - Schema hints for ZodLiteral, ZodUnion, ZodNullable, ZodDefault, ZodRecord
 - Per-pipeline metrics schemas (DoraReportSchema, VelocityReportSchema)
 - Framework detection with line-start matching (reduced false positives)

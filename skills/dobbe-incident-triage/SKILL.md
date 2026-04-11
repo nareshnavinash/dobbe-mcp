@@ -23,15 +23,23 @@ investigate a specific error, or resolve a Sentry issue.
    - For auto-resolve: add `resolve: true, cwd: "/path/to/repo"`
    - Optional: `project: "my-project"`, `severity: "critical,high"`, `since: "7 days"`
 
-3. Follow the returned instruction exactly.
+3. The tool returns a **declarative step** with `intent`, `mode`, `context`, and `hints`.
 
-4. After completing each step, call `mcp__dobbe__pipeline_step` with results.
+4. Respond based on the step's **mode**:
+   - **`plan`**: Enter plan mode. Analyze the codebase, form a strategy, then execute.
+   - **`act`**: Execute the intent directly using tools, code, commands as needed.
+   - **`gather`**: Collect the requested data. Scan the codebase first, then ask the user
+     only for information the code cannot provide. Use interactive prompts where appropriate.
+   - **`report`**: Synthesize prior step results into a formatted output.
 
-5. Continue until the tool returns `{done: true}`.
+5. Call `mcp__dobbe__pipeline_step` with results matching the provided schema.
+
+6. Continue until the tool returns `{done: true}`.
 
 ## Rules
 
-- **NEVER skip steps** -- always call back for the next instruction.
+- **Respect the intent** of each step -- never skip steps.
+- **Use hints as guidance, not rigid steps.**
 - Sentry MCP is required -- if not available, report the error.
 - For single issue analysis: always read the source code mentioned in stack traces.
 - Provide specific file paths and line numbers in your analysis.

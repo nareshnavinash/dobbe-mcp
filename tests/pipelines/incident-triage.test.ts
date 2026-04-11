@@ -18,24 +18,28 @@ describe("incident-triage pipeline", () => {
       expect(Object.keys(def.states)).toEqual(["fetch", "done"]);
     });
 
-    it("includes org in instruction", () => {
+    it("includes org in context", () => {
       const def = createIncidentTriagePipeline({ org: "acme-corp" });
-      expect(def.states.fetch.instruction).toContain("acme-corp");
+      const ctx = def.states.fetch.context as Record<string, unknown>;
+      expect(ctx.org).toBe("acme-corp");
     });
 
     it("includes project filter", () => {
       const def = createIncidentTriagePipeline({ org: "acme", project: "web-app" });
-      expect(def.states.fetch.instruction).toContain("web-app");
+      const ctx = def.states.fetch.context as Record<string, unknown>;
+      expect(ctx.project).toBe("web-app");
     });
 
     it("includes severity filter", () => {
       const def = createIncidentTriagePipeline({ org: "acme", severity: "critical,high" });
-      expect(def.states.fetch.instruction).toContain("critical,high");
+      const ctx = def.states.fetch.context as Record<string, unknown>;
+      expect(ctx.severity).toBe("critical,high");
     });
 
     it("includes since filter", () => {
       const def = createIncidentTriagePipeline({ org: "acme", since: "7 days" });
-      expect(def.states.fetch.instruction).toContain("7 days");
+      const ctx = def.states.fetch.context as Record<string, unknown>;
+      expect(ctx.since).toBe("7 days");
     });
 
     it("walks through fetch → done", () => {
@@ -68,16 +72,18 @@ describe("incident-triage pipeline", () => {
         issueId: "12345",
       });
       expect(def.initialState).toBe("fetch");
-      expect(def.states.fetch.instruction).toContain("12345");
+      const ctx = def.states.fetch.context as Record<string, unknown>;
+      expect(ctx.issue_id).toBe("12345");
     });
 
-    it("includes cwd in instruction when provided", () => {
+    it("includes cwd in context when provided", () => {
       const def = createIncidentTriagePipeline({
         org: "acme",
         issueId: "12345",
         cwd: "/home/user/project",
       });
-      expect(def.states.fetch.instruction).toContain("/home/user/project");
+      const ctx = def.states.fetch.context as Record<string, unknown>;
+      expect(ctx.cwd).toBe("/home/user/project");
     });
 
     it("handles missing cwd gracefully", () => {
@@ -85,7 +91,8 @@ describe("incident-triage pipeline", () => {
         org: "acme",
         issueId: "12345",
       });
-      expect(def.states.fetch.instruction).toContain("local repository");
+      const ctx = def.states.fetch.context as Record<string, unknown>;
+      expect(ctx.cwd).toBeUndefined();
     });
 
     it("transitions to done without resolve", () => {

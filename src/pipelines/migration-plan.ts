@@ -25,18 +25,22 @@ export function createMigrationPlanPipeline(params: {
   const shouldRun = params.run ?? false;
   const maxIter = params.maxIterations ?? 3;
 
-  const planInstruction = [
-    `Plan the migration from "${params.fromPackage}" to "${params.toPackage}" in "${params.repo}".`,
-    "",
-    "Steps:",
-    `1. Grep for all usages of "${params.fromPackage}" in the codebase`,
-    "2. Read affected files to understand usage patterns",
-    `3. Identify breaking changes between "${params.fromPackage}" and "${params.toPackage}"`,
-    "4. Plan step-by-step migration with file-level changes",
-    "5. Assess complexity and risks",
-    "",
-    "Return the migration plan.",
-  ].join("\n");
+  const planStep = {
+    intent: `Plan the migration from "${params.fromPackage}" to "${params.toPackage}"`,
+    mode: "plan" as const,
+    context: {
+      repo: params.repo,
+      from_package: params.fromPackage,
+      to_package: params.toPackage,
+    },
+    hints: [
+      "Grep for all usages of the source package in the codebase",
+      "Identify breaking changes between the two packages",
+      "Plan step-by-step migration with file-level changes",
+      "Assess complexity and risks",
+    ],
+    schema: MigrationPlanSchema,
+  };
 
   if (!shouldRun) {
     return {
@@ -46,12 +50,11 @@ export function createMigrationPlanPipeline(params: {
       maxIterations: 0,
       states: {
         plan: {
-          instruction: planInstruction,
-          schema: MigrationPlanSchema,
+          ...planStep,
           transitions: { default: "done" },
         },
         done: {
-          instruction: "Migration planning complete.",
+          intent: "Migration planning complete.",
           schema: z.object({}),
           transitions: {},
         },
@@ -66,35 +69,30 @@ export function createMigrationPlanPipeline(params: {
     maxIterations: maxIter,
     states: {
       plan: {
-        instruction: planInstruction,
-        schema: MigrationPlanSchema,
+        ...planStep,
         transitions: { default: "apply" },
       },
       apply: {
-        instruction: [
-          "Apply the migration plan by editing files.",
-          "",
-          "Follow the plan from the previous step:",
-          `- Replace all usages of "${params.fromPackage}" with "${params.toPackage}"`,
-          "- Update imports, configuration, and dependency files",
-          "- Run package manager install to update lockfiles",
-          "",
-          "Return the list of modified files.",
-        ].join("\n"),
+        intent: "Apply the migration plan by editing files and updating dependencies",
+        mode: "act",
+        context: {
+          from_package: params.fromPackage,
+          to_package: params.toPackage,
+        },
+        hints: [
+          "Replace all usages, update imports, configuration, and dependency files",
+          "Run package manager install to update lockfiles",
+        ],
         schema: MigrationApplySchema,
         transitions: { default: "verify" },
       },
       verify: {
-        instruction: [
-          "Verify the migration by running the test suite.",
-          "",
-          "1. Run the project's test command",
-          "2. Check for import errors, type errors, or runtime failures",
-          "3. Verify lockfile consistency",
-          "",
-          "Set passed=true ONLY if all tests pass.",
-          "If any fail, provide feedback for the next apply attempt.",
-        ].join("\n"),
+        intent: "Verify the migration by running the test suite",
+        mode: "act",
+        hints: [
+          "Set passed=true ONLY if all tests pass",
+          "If any fail, provide feedback for the next apply attempt",
+        ],
         schema: MigrationVerifySchema,
         transitions: {
           pass: "commit",
@@ -103,32 +101,31 @@ export function createMigrationPlanPipeline(params: {
         },
       },
       commit: {
-        instruction: [
-          "Commit the migration changes.",
-          `  git checkout -b migrate/${params.fromPackage}-to-${params.toPackage}`,
-          "  git add -A",
-          `  git commit -m "refactor: migrate from ${params.fromPackage} to ${params.toPackage}"`,
-        ].join("\n"),
+        intent: "Commit the migration changes to a new branch",
+        mode: "act",
+        context: {
+          branch_pattern: `migrate/${params.fromPackage}-to-${params.toPackage}`,
+          commit_message: `refactor: migrate from ${params.fromPackage} to ${params.toPackage}`,
+        },
         schema: CommitResultSchema,
         transitions: { default: "pr" },
       },
       pr: {
-        instruction: [
-          "Create a pull request for the migration.",
-          "  git push -u origin HEAD",
-          `  gh pr create --title "refactor: migrate ${params.fromPackage} → ${params.toPackage}" --body "<migration summary>"`,
-          "Report the PR URL.",
-        ].join("\n"),
+        intent: "Create a pull request for the migration",
+        mode: "act",
+        context: {
+          pr_title: `refactor: migrate ${params.fromPackage} → ${params.toPackage}`,
+        },
         schema: PrResultSchema,
         transitions: { default: "done" },
       },
       done: {
-        instruction: "Migration complete.",
+        intent: "Migration complete.",
         schema: z.object({}),
         transitions: {},
       },
       failed: {
-        instruction: "Migration failed after maximum iterations. Tests could not pass after applying changes.",
+        intent: "Migration failed after maximum iterations. Tests could not pass after applying changes.",
         schema: z.object({}),
         transitions: {},
       },

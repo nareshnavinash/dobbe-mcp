@@ -4,9 +4,9 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>dobbe -- DevOps autopilot for Claude Code</title>
-  <meta name="description" content="Scan vulns, fix deps, review PRs, gen tests, track DORA metrics. 16 commands, zero config. MCP server with deterministic retry loops.">
+  <meta name="description" content="Scan vulns, fix deps, review PRs, gen tests, track DORA metrics. 24 commands, zero config. MCP server with deterministic retry loops.">
   <meta property="og:title" content="dobbe -- DevOps autopilot for Claude Code">
-  <meta property="og:description" content="16 commands. Zero config. Deterministic retry loops. The DevOps toolkit for Claude Code.">
+  <meta property="og:description" content="24 commands. Zero config. Deterministic retry loops. The DevOps toolkit for Claude Code.">
   <meta property="og:type" content="website">
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cpath d='M42 10V50A16 16 0 1 1 42 22' fill='none' stroke='%2358a6ff' stroke-width='8' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
   <style>
@@ -684,9 +684,9 @@
       </div>
     </div>
     <div class="stats-row">
-      <div class="stat"><div class="number" data-target="16">0</div><div class="label">commands</div></div>
+      <div class="stat"><div class="number" data-target="24">0</div><div class="label">commands</div></div>
       <div class="stat"><div class="number" data-target="13">0</div><div class="label">pipelines</div></div>
-      <div class="stat"><div class="number" data-target="266">0</div><div class="label">tests</div></div>
+      <div class="stat"><div class="number" data-target="373">0</div><div class="label">tests</div></div>
       <div class="stat"><div class="number" data-target="94" data-suffix="%">0</div><div class="label">coverage</div></div>
     </div>
   </section>
@@ -750,7 +750,7 @@
           <div class="step-num">2</div>
           <div class="step-text">
             <h3>Run a command</h3>
-            <p>Type <code>/dobbe-vuln-resolve</code>. The MCP server starts a state machine and sends instructions.</p>
+            <p>Type <code>/dobbe-vuln-resolve</code>. The MCP server starts a state machine and sends declarative steps with intent, mode, and context.</p>
           </div>
         </div>
         <div class="step">
@@ -772,10 +772,10 @@
           <div class="terminal-line"><span class="t-comment">// You type /dobbe-vuln-resolve</span></div>
           <div class="terminal-line">&nbsp;</div>
           <div class="terminal-line"><span class="t-out">&rarr;</span> <span class="t-key">pipeline_start</span>({<span class="t-str">"vuln-resolve"</span>, repo: <span class="t-str">"acme/app"</span>})</div>
-          <div class="terminal-line"><span class="t-in">&larr;</span> {step: <span class="t-str">"scan"</span>, instruction: <span class="t-str">"Fetch alerts..."</span>}</div>
+          <div class="terminal-line"><span class="t-in">&larr;</span> {step: <span class="t-str">"scan"</span>, intent: <span class="t-str">"Scan for alerts"</span>, mode: <span class="t-str">"act"</span>}</div>
           <div class="terminal-line">&nbsp;</div>
           <div class="terminal-line"><span class="t-out">&rarr;</span> <span class="t-key">pipeline_step</span>({result: {alerts: <span class="t-val">3</span>}})</div>
-          <div class="terminal-line"><span class="t-in">&larr;</span> {step: <span class="t-str">"fix"</span>, instruction: <span class="t-str">"Upgrade lodash..."</span>}</div>
+          <div class="terminal-line"><span class="t-in">&larr;</span> {step: <span class="t-str">"fix"</span>, intent: <span class="t-str">"Fix vulnerabilities"</span>, mode: <span class="t-str">"act"</span>}</div>
           <div class="terminal-line">&nbsp;</div>
           <div class="terminal-line"><span class="t-comment">// Tests fail -- server auto-retries with feedback</span></div>
           <div class="terminal-line"><span class="t-in">&larr;</span> {step: <span class="t-str">"fix"</span>, iteration: <span class="t-val">2</span>, feedback: <span class="t-str">"TypeError..."</span>}</div>
@@ -806,7 +806,7 @@
     </div>
     <p class="eco-note">Auto-detects: Django, Angular, React, Next.js, Express, Flask, FastAPI, Spring Boot, Rails</p>
     <div class="cred-line">
-      <span><span class="cred-val">266</span> tests</span>
+      <span><span class="cred-val">373</span> tests</span>
       <span class="cred-sep">|</span>
       <span><span class="cred-val">94%</span> coverage</span>
       <span class="cred-sep">|</span>
@@ -846,7 +846,7 @@
       <a href="https://github.com/nareshnavinash/dobbe-mcp/blob/main/LICENSE">MIT License</a>
     </div>
     <div style="font-size: 0.78rem; color: #484f58; margin-top: 8px;">
-      v0.1.0 &middot; Built with TypeScript, Zod, and the MCP SDK &middot; by <a href="https://github.com/nareshnavinash">Naresh Sekar</a>
+      v0.3.0 &middot; Built with TypeScript, Zod, and the MCP SDK &middot; by <a href="https://github.com/nareshnavinash">Naresh Sekar</a>
     </div>
   </footer>
 

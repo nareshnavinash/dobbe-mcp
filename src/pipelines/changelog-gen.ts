@@ -14,7 +14,6 @@ export function createChangelogGenPipeline(params: {
   includePrs?: boolean;
 }): PipelineDefinition {
   const toRef = params.toRef || "HEAD";
-  const includePrs = params.includePrs ?? false;
 
   return {
     name: "changelog-gen",
@@ -23,37 +22,24 @@ export function createChangelogGenPipeline(params: {
     maxIterations: 0,
     states: {
       analyze: {
-        instruction: [
-          `Generate release notes for "${params.repo}" from ${params.fromRef} to ${toRef}.`,
-          "",
-          "Steps:",
-          `1. Run: git log --format="%H|%s|%aN" ${params.fromRef}..${toRef}`,
-          ...(includePrs
-            ? [
-                `2. For each commit, find associated PRs:`,
-                `   gh pr list --repo ${params.repo} --state merged --search "<commit SHA>" --json number,title`,
-              ]
-            : []),
-          "",
-          "3. Categorize each commit/PR into:",
-          "   - feature: new functionality",
-          "   - fix: bug fixes",
-          "   - breaking: backward-incompatible changes",
-          "   - deprecation: deprecated features",
-          "   - performance: performance improvements",
-          "   - documentation: docs changes",
-          "   - chore: maintenance, CI, tooling",
-          "   - security: security fixes",
-          "",
-          "4. Write a concise summary paragraph",
-          "",
-          "Return the categorized changelog.",
-        ].join("\n"),
+        intent: "Generate categorized release notes from commit history",
+        mode: "act",
+        context: {
+          repo: params.repo,
+          from_ref: params.fromRef,
+          to_ref: toRef,
+          include_prs: params.includePrs ?? false,
+        },
+        hints: [
+          "Categorize into: feature, fix, breaking, deprecation, performance, documentation, chore, security",
+          "Include a concise summary paragraph",
+          "If include_prs is true, find associated PRs for each commit",
+        ],
         schema: ChangelogSchema,
         transitions: { default: "done" },
       },
       done: {
-        instruction: "Changelog generation complete.",
+        intent: "Changelog generation complete.",
         schema: z.object({}),
         transitions: {},
       },

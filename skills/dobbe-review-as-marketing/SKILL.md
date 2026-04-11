@@ -15,23 +15,24 @@ perspective on their project.
    - command: `"review-as-marketing"`
    - params: `{}`
 
-2. The tool returns an instruction. **Follow it exactly.**
-   - The first step is a **discovery phase**: scan the codebase and ask the
-     user 3-5 targeted questions from a marketing perspective.
+2. The tool returns a **declarative step** with `intent`, `mode`, `context`, and `hints`.
 
-3. After the user answers your questions, synthesize your findings and call
-   `mcp__dobbe__pipeline_step` with your structured discovery result.
+3. Respond based on the step's **mode**:
+   - **`plan`**: Enter plan mode. Analyze the codebase, form a strategy, then execute.
+   - **`act`**: Execute the intent directly using tools, code, commands as needed.
+   - **`gather`**: Collect the requested data. Scan the codebase first, then ask the user
+     only for information the code cannot provide. Use interactive prompts where appropriate.
+   - **`report`**: Synthesize prior step results into a formatted output.
 
-4. The next step is **analysis**: use the discovery context to produce
-   structured promotion strategies with a markdown summary.
+4. Call `mcp__dobbe__pipeline_step` with results matching the provided schema.
 
-5. Continue following instructions until the tool returns `{done: true}`.
+5. Continue until the tool returns `{done: true}`.
 
 ## Rules
 
-- **NEVER skip the Q&A** -- you MUST ask the user questions and wait for real answers.
+- **Respect the intent** of each step -- never skip steps.
+- **Use hints as guidance, not rigid steps.**
 - **NEVER fabricate user answers** -- if the user says "skip" or "I don't know", record that honestly.
 - Reference specific features, README content, or project capabilities you found when asking questions.
-- Present all questions in a single numbered list, then wait for the user to respond.
 - Focus on actionable strategies Claude can help implement (blog posts, README improvements, demos).
 - Translate technical capabilities into user-facing benefits in your recommendations.

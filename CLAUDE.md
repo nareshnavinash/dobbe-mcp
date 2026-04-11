@@ -2,7 +2,7 @@
 
 ## What is dobbe?
 
-An MCP server that orchestrates Claude Code through multi-step DevOps pipelines using a finite state machine. Claude follows step-by-step instructions from the server, submitting results at each step. The server validates results, manages state transitions, and handles retry loops.
+An MCP server that orchestrates Claude Code through multi-step DevOps pipelines using a finite state machine. The server declares WHAT needs to happen (intent, mode, context) and Claude decides HOW to accomplish it. The server validates results, manages state transitions, and handles retry loops.
 
 ## Architecture
 
@@ -16,7 +16,7 @@ index.ts → server.ts → PipelineService → StateMachine
 
 - **StateMachine** (`src/state/machine.ts`): Generic FSM. Validates results with Zod, manages transitions.
 - **PipelineService** (`src/tools/pipeline.ts`): Encapsulates machine + storage + active sessions. One instance per server.
-- **Pipelines** (`src/pipelines/*.ts`): Each returns a `PipelineDefinition` with states, transitions, instructions, and schemas.
+- **Pipelines** (`src/pipelines/*.ts`): Each returns a `PipelineDefinition` with states, transitions, intent/mode/context, and schemas.
 - **Registry** (`src/pipelines/registry.ts`): Maps command names to pipeline factories with param validation.
 
 ## Key patterns
