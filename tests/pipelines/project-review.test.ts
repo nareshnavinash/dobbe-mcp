@@ -189,6 +189,21 @@ describe("Project Review Pipeline", () => {
     });
   });
 
+  describe("discover steps use plan mode", () => {
+    it("all discover steps use plan mode, not gather", () => {
+      const def = createProjectReviewPipeline({ roles: ["pm", "engineer"] });
+      expect(def.states.pm_discover.mode).toBe("plan");
+      expect(def.states.engineer_discover.mode).toBe("plan");
+    });
+
+    it("discover steps have discoverTopics in context, not gatherFields", () => {
+      const def = createProjectReviewPipeline({ roles: ["pm"] });
+      expect(def.states.pm_discover.gatherFields).toBeUndefined();
+      const context = def.states.pm_discover.context as Record<string, unknown>;
+      expect(context.discoverTopics).toBeDefined();
+    });
+  });
+
   describe("full walk-through with 2 roles", () => {
     it("walks through pm -> engineer -> synthesize -> done", () => {
       const machine = new StateMachine();

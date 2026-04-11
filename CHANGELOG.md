@@ -3,6 +3,18 @@
 All notable changes to dobbe are documented here.
 Format based on [Keep a Changelog](https://keepachangelog.com/).
 
+## [0.5.0] - 2026-04-11
+
+### Changed
+- **Discover steps use plan mode instead of gather mode** -- Claude now enters plan mode for deep codebase analysis before deciding whether to ask the user anything, using `AskUserQuestion` with contextual options only for genuine gaps
+- `discoverFields` rewritten as short topic labels (not full question sentences) and moved to `context.discoverTopics`
+- `gatherFields` removed from discover steps -- topics passed via `context` for plan-mode analysis
+- `DiscoveryResultSchema` allows empty `questions_and_answers` (Claude may determine everything from code)
+- `DiscoveryQuestionSchema.question` capped at 200 characters as backstop
+- Gather mode description updated across all 21 SKILL.md files to reference `AskUserQuestion`
+- Discover step hints emphasize thorough codebase analysis before any user interaction
+- 33 new tests (373 -> 406)
+
 ## [0.4.0] - 2026-04-11
 
 ### Changed

@@ -401,15 +401,15 @@ export const SecretsResultSchema = z.object({
 // Shared discovery schema (all roles use this)
 
 export const DiscoveryQuestionSchema = z.object({
-  question: z.string().describe("The question asked"),
+  question: z.string().max(200).describe("Short, focused question (under 200 chars)"),
   answer: z.string().describe("The user's answer"),
 });
 
 export const DiscoveryResultSchema = z.object({
   role: z.string().describe("The review role perspective"),
   codebase_summary: z.string().describe("Brief summary of project structure and purpose"),
-  questions_and_answers: z.array(DiscoveryQuestionSchema).min(1)
-    .describe("Questions asked to user and their responses"),
+  questions_and_answers: z.array(DiscoveryQuestionSchema)
+    .describe("Questions asked to user and their responses, if any"),
   key_observations: z.array(z.string()).describe("Notable observations from codebase scan"),
   focus_areas: z.array(z.string()).describe("Areas to focus on in analysis"),
 });

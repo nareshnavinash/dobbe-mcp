@@ -231,10 +231,20 @@ describe("Role-Based Review Pipelines", () => {
       expect(result.success).toBe(true);
     });
 
-    it("DiscoveryResultSchema rejects empty questions", () => {
+    it("DiscoveryResultSchema accepts empty questions (plan mode may not need to ask)", () => {
       const result = DiscoveryResultSchema.safeParse({
         ...validDiscovery("pm"),
         questions_and_answers: [],
+      });
+      expect(result.success).toBe(true);
+    });
+
+    it("DiscoveryQuestionSchema rejects questions over 200 characters", () => {
+      const result = DiscoveryResultSchema.safeParse({
+        ...validDiscovery("pm"),
+        questions_and_answers: [
+          { question: "x".repeat(201), answer: "yes" },
+        ],
       });
       expect(result.success).toBe(false);
     });
@@ -270,6 +280,49 @@ describe("Role-Based Review Pipelines", () => {
 
     it("SalesAnalysisSchema accepts valid data", () => {
       expect(SalesAnalysisSchema.safeParse(validSalesAnalysis).success).toBe(true);
+    });
+  });
+
+  describe("discover step declarative fields", () => {
+    for (const { name, factory } of roleFactories) {
+      it(`${name} discover step uses plan mode`, () => {
+        const def = factory();
+        expect(def.states.discover.mode).toBe("plan");
+      });
+
+      it(`${name} discover step has discoverTopics in context`, () => {
+        const def = factory();
+        const context = def.states.discover.context as Record<string, unknown>;
+        expect(context.discoverTopics).toBeDefined();
+        expect(typeof context.discoverTopics).toBe("object");
+      });
+
+      it(`${name} discover step does not use gatherFields`, () => {
+        const def = factory();
+        expect(def.states.discover.gatherFields).toBeUndefined();
+      });
+
+      it(`${name} discoverTopics values are short topic labels`, () => {
+        const def = factory();
+        const context = def.states.discover.context as Record<string, unknown>;
+        const topics = context.discoverTopics as Record<string, string>;
+        for (const [, value] of Object.entries(topics)) {
+          expect(value.length).toBeLessThan(60);
+          expect(value).not.toMatch(/\?$/);
+        }
+      });
+    }
+
+    it("discover step hints reference AskUserQuestion", () => {
+      const def = createReviewAsPmPipeline();
+      const hints = def.states.discover.hints ?? [];
+      expect(hints.some(h => h.includes("AskUserQuestion"))).toBe(true);
+    });
+
+    it("discover step hints emphasize thorough analysis", () => {
+      const def = createReviewAsPmPipeline();
+      const hints = def.states.discover.hints ?? [];
+      expect(hints.some(h => h.includes("thorough"))).toBe(true);
     });
   });
 
